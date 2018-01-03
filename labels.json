@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Waiting on contributor",
+    "color": "f7c6c7"
+  },
+  {
+    "name": "Needs re-review",
+    "color": "0052cc"
+  },
+  {
+    "name": "Needs testing",
+    "color": "fbca04"
+  },
+  {
+    "name": "Not yet reviewed",
+    "color": "0e8a16"
+  },
+  {
+    "name": "Bug",
+    "color": "0e8a16"
+  },
+  {
+    "name": "Enhancement",
+    "color": "b5edf2"
+  },
+  {
+    "name": "Modulesync",
+    "color": "cffc64"
+  }
+]

@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+
+import json
+import os
+
+import click
+from github import Github
+
+
+def get_github():
+    try:
+        token = os.environ['GITHUB_TOKEN']
+    except KeyError:
+        username = os.environ['GITHUB_USERNAME']
+        password = os.environ['GITHUB_PASSWORD']
+        return Github(username, password)
+    else:
+        return Github(token)
+
+
+def get_label(labels, label):
+    for name in [label['name']] + label.get('aliases', []):
+        if name in labels:
+            return labels[name]
+        elif name.lower() in labels:
+            return labels[name.lower()]
+
+def get_to_update(current_labels, desired_labels):
+    for desired in desired_labels:
+        current = get_label(current_labels, desired)
+        if current and current.color != desired['color']:
+            yield current, desired
+
+
+@click.command()
+@click.argument('repository')
+@click.option('--dry-run')
+@click.option('--config', default='labels.json', type=click.Path(exists=True))
+def cli(repository, dry_run, config):
+    try:
+        github = get_github()
+    except KeyError:
+        raise click.ClickException('Unable to find Github token or username/password')
+
+    with open(config) as fp:
+        desired = json.load(fp)
+
+    if '/puppet-' not in repository:
+        for i, label in enumerate(desired):
+            if label['name'] == 'Modulesync':
+                del desired[i]
+                break
+
+    repo = github.get_repo(repository)
+
+    click.echo('Updating labels for ' + repo.name)
+
+    current = {label.name: label for label in repo.get_labels()}
+
+    to_add = [label for label in desired if get_label(current, label) is None]
+    to_update = list(get_to_update(current, desired))
+
+    if dry_run:
+        click.echo('  Would add ' + ', '.join(label['name'] for label in to_add))
+    else:
+        for label in to_add:
+            click.echo('  Adding {} (#{})'.format(label['name'], label['color']))
+            repo.create_label(label['name'], label['color'])
+
+    if dry_run:
+        click.echo('  Would update ' + ', '.join(label.name for label, _ in to_update))
+    else:
+        for old_label, new_label in to_update:
+            click.echo('  Updating {} -> {} (#{} to #{})'.format(
+                old_label.name, new_label['name'], old_label.color, new_label['color']))
+            old_label.edit(new_label['name'], new_label['color'])
+
+
+if __name__ == '__main__':
+    cli()
