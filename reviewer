@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+
+import os
+import re
+import subprocess
+import tempfile
+
+import click
+import requests
+from github import Github
+
+
+def get_github():
+    try:
+        token = os.environ['GITHUB_TOKEN']
+    except KeyError:
+        username = os.environ['GITHUB_USERNAME']
+        password = os.environ['GITHUB_PASSWORD']
+        return Github(username, password)
+    else:
+        return Github(token)
+
+
+def get_version_from_spec(path):
+    command = ['rpmspec', '--srpm', '--query', '--queryformat', '%{version}', path]
+    return subprocess.check_output(command).decode('utf-8')
+
+
+def compare_gems(name, old, new):
+    return subprocess.check_output(['gem', 'compare', '-b', name, old, new])
+
+
+@click.command()
+@click.argument('repository')
+@click.argument('number', type=int)
+def cli(repository, number):
+    try:
+        github = get_github()
+    except KeyError:
+        raise click.ClickException('Unable to find Github token or username/password')
+
+    session = requests.Session()
+
+    files = github.get_repo(repository).get_pull(number).get_files()
+
+    regex = re.compile(r'(?P<package_name>rubygem-(?P<gem_name>.+))\.spec')
+
+    for changed_file in files:
+        if changed_file.status == "modified":
+            filename = changed_file.filename
+            match = regex.match(os.path.basename(filename))
+            if match:
+                gem_name = match.group('gem_name')
+
+                old_version = get_version_from_spec(filename)
+
+                response = session.get(changed_file.raw_url)
+                response.raise_for_status()
+                with tempfile.NamedTemporaryFile() as fp:
+                    fp.file.write(response.content)
+                    fp.file.close()
+                    new_version = get_version_from_spec(fp.name)
+
+                click.echo('Comparing {} gem'.format(gem_name))
+                click.echo(compare_gems(gem_name, old_version, new_version))
+
+if __name__ == '__main__':
+    cli()
