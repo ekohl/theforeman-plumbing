@@ -1,0 +1,71 @@
+#!/bin/bash -e
+
+DIR=$HOME/dev/foreman-packaging
+
+ACTION=$1
+if [[ -z $ACTION ]] ; then
+	echo "Usage: $0 ACTION"
+	exit 1
+fi
+shift
+
+pick() {
+	VERSION=$1
+	COMMIT=$2
+
+	if [[ -z $VERSION ]] || [[ -z $COMMIT ]]; then
+		echo "Usage: $0 cherry-pick VERSION COMMIT"
+		exit 1
+	fi
+
+	git checkout rpm/$VERSION
+	git pull
+	git cherry-pick $COMMIT
+}
+
+changed() {
+	git --git-dir $DIR/.git show --name-only $1 | grep .spec | xargs --no-run-if-empty dirname | sort -u | sed "s|^|$DIR/|"
+}
+
+sources() {
+	$DIR/setup_sources.sh .
+}
+
+tag() {
+	sources
+	tito tag --keep-version --accept-auto-changelog
+}
+
+release() {
+	sources
+	git push
+	tito release koji-foreman koji-foreman-plugins
+}
+
+if [[ $ACTION == "pick" ]] ; then
+	pick "$@"
+elif [[ $ACTION == "tag" ]] ; then
+	tag
+elif [[ $ACTION == "tag-changed" ]] ; then
+	for dir in $(changed $1) ; do
+		pushd $dir
+		tag
+		popd
+	done
+elif [[ $ACTION == "tag-release-changed" ]] ; then
+	for dir in $(changed $1) ; do
+		pushd $dir
+		tag
+		release
+		popd
+	done
+elif [[ $ACTION == "changed" ]] ; then
+	changed $1
+elif [[ $ACTION == "sources" ]] ; then
+	sources
+elif [[ $ACTION == "release" ]] ; then
+	release
+else
+	echo "Usage: $0 ACTION"
+	exit 1
+fi

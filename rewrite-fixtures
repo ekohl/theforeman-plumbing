@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+require 'puppet_forge'
+require 'semantic_puppet'
+require 'yaml'
+require 'uri'
+
+FILENAME = ['.fixtures.yaml', '.fixtures.yml'].find { |filename| FileTest.exists? filename }
+
+def find_version(name, puppet)
+  begin
+    mod = PuppetForge::Module.find name.gsub('/', '-')
+  rescue
+    $stderr.puts "Could not find module #{name}"
+    exit 1
+  end
+
+  mod.releases.each do |release|
+    release = PuppetForge::Release.find release.slug
+
+    unless release.metadata[:requirements]
+      puts "Skipping #{release.slug} due to missing requirements"
+      next
+    end
+
+    requirement = release.metadata[:requirements].find { |req| req[:name] == 'puppet' }
+    if requirement and requirement[:version_requirement]
+      range = SemanticPuppet::VersionRange.parse(requirement[:version_requirement])
+      if range.include? puppet
+        return release.version
+      end
+    end
+  end
+end
+
+puppet = SemanticPuppet::Version.parse '3.8.7'
+
+fixtures = YAML.load(File.read(FILENAME))
+
+if fixtures['fixtures']['repositories']
+  fixtures['fixtures']['repositories'].each do |name, mod|
+    url = nil
+    if mod.instance_of? String
+      url = mod
+    elsif mod['repo']
+      url = mod['repo']
+    end
+
+    if url
+      parsed = URI.parse(url)
+      if parsed.host == 'github.com'
+        parts = parsed.path.split('/')
+        author = parts[1]
+        author = 'puppet' if ['voxpupuli', 'puppet-community'].include?(author)
+        name = /[a-z0-9]+-([a-z0-9_]+)(\.git)?/.match(parts[2])[1]
+
+        fixtures['fixtures']['forge_modules'] = {} unless fixtures['fixtures'].key?('forge_modules')
+        fixtures['fixtures']['forge_modules'][name] = "#{author}-#{name}"
+
+        unless ['katello', 'theforeman'].include?(author.downcase)
+          fixtures['fixtures']['repositories'].delete name
+        end
+      end
+    end
+  end
+end
+
+if fixtures['fixtures']['forge_modules']
+  fixtures['fixtures']['forge_modules'].each do |name, mod|
+    if mod.instance_of? String
+      version = find_version(mod, puppet)
+      if version
+        fixtures['fixtures']['forge_modules'][name] = {
+          'repo' => mod,
+          'ref' => version,
+        }
+      end
+    elsif mod['repo']
+      version = find_version(mod['repo'], puppet)
+      fixtures['fixtures']['forge_modules'][name]['ref'] = version if version
+    end
+  end
+end
+
+File.open(FILENAME, 'w') { |f| f.write YAML.dump(fixtures) }

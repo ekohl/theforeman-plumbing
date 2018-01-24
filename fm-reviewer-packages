@@ -1,0 +1,8 @@
+#!/bin/bash
+if [[ -z $1 ]] ; then
+	echo "Usage: $0 PR#"
+	exit 1
+fi
+
+cd $HOME/dev/foreman-packaging
+GITHUB_TOKEN=$(cat $HOME/.github_changelog_generator_token) reviewer theforeman/foreman-packaging $1
