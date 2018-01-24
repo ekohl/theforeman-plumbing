@@ -33,48 +33,43 @@ def get_to_update(current_labels, desired_labels):
 
 
 @click.command()
-@click.argument('repository')
-@click.option('--dry-run')
-@click.option('--config', default='labels.json', type=click.Path(exists=True))
+@click.argument('repository', nargs=-1)
+@click.option('--dry-run', is_flag=True)
+@click.option('--config', default='labels.json', type=click.File())
 def cli(repository, dry_run, config):
     try:
         github = get_github()
     except KeyError:
         raise click.ClickException('Unable to find Github token or username/password')
 
-    with open(config) as fp:
-        desired = json.load(fp)
+    labels = json.load(config)
 
-    if '/puppet-' not in repository:
-        for i, label in enumerate(desired):
-            if label['name'] == 'Modulesync':
-                del desired[i]
-                break
+    for repo in map(github.get_repo, repository):
+        click.echo('Updating labels for ' + repo.name)
 
-    repo = github.get_repo(repository)
+        current = {label.name: label for label in repo.get_labels()}
 
-    click.echo('Updating labels for ' + repo.name)
+        to_add = [label for label in labels if get_label(current, label) is None and
+                  (label['name'] != 'Modulesync' or '/puppet-' not in repo.name)]
+        to_update = list(get_to_update(current, labels))
 
-    current = {label.name: label for label in repo.get_labels()}
+        if dry_run:
+            if to_add:
+                click.echo('  Would add ' + ', '.join(label['name'] for label in to_add))
+        else:
+            for label in to_add:
+                click.echo('  Adding {} (#{})'.format(label['name'], label['color']))
+                repo.create_label(label['name'], label['color'])
 
-    to_add = [label for label in desired if get_label(current, label) is None]
-    to_update = list(get_to_update(current, desired))
-
-    if dry_run:
-        click.echo('  Would add ' + ', '.join(label['name'] for label in to_add))
-    else:
-        for label in to_add:
-            click.echo('  Adding {} (#{})'.format(label['name'], label['color']))
-            repo.create_label(label['name'], label['color'])
-
-    if dry_run:
-        click.echo('  Would update ' + ', '.join(label.name for label, _ in to_update))
-    else:
-        for old_label, new_label in to_update:
-            click.echo('  Updating {} -> {} (#{} to #{})'.format(
-                old_label.name, new_label['name'], old_label.color, new_label['color']))
-            old_label.edit(new_label['name'], new_label['color'])
+        if dry_run:
+            if to_update:
+                click.echo('  Would update ' + ', '.join(label.name for label, _ in to_update))
+        else:
+            for old_label, new_label in to_update:
+                click.echo('  Updating {} -> {} (#{} to #{})'.format(
+                    old_label.name, new_label['name'], old_label.color, new_label['color']))
+                old_label.edit(new_label['name'], new_label['color'])
 
 
 if __name__ == '__main__':
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

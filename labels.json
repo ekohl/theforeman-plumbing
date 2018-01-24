@@ -24,6 +24,10 @@
     "color": "b5edf2"
   },
   {
+    "name": "Backwards incompatible",
+    "color": "eb6420"
+  },
+  {
     "name": "Modulesync",
     "color": "cffc64"
   }
