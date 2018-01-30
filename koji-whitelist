@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+import subprocess
+import sys
+from configparser import ConfigParser
+
+
+def get_whitelists(propsfilename, packages):
+    config = ConfigParser()
+    config.read(propsfilename)
+
+    for section in config.sections():
+        try:
+            whitelist = config[section]['whitelist'].split()
+        except KeyError:
+            pass
+        else:
+            yield section, [package for package in packages if package in whitelist]
+
+def main(packages):
+    for section, whitelisted in get_whitelists('rel-eng/tito.props', packages):
+        if whitelisted:
+            subprocess.check_call(['koji', 'add-pkg', '--owner', 'kojiadm', section] + whitelisted)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
