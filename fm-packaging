@@ -18,9 +18,16 @@ pick() {
 		exit 1
 	fi
 
+	COMMIT=$(git rev-parse $COMMIT)
+
 	git checkout rpm/$VERSION
 	git pull
-	git cherry-pick $COMMIT
+	git cherry-pick $COMMIT || true
+	for to_move in $(git --git-dir $DIR/.git show --name-only $COMMIT | grep ^packages) ; do
+		if [[ -f "$DIR/$to_move" ]] ; then
+			git mv "$DIR/$to_move" "$DIR/$(basename $(dirname $to_move))"
+		fi
+	done
 }
 
 changed() {
