@@ -39,13 +39,17 @@ sources() {
 }
 
 tag() {
+	if [[ $(git rev-parse --abbrev-ref HEAD) == "rpm/develop" ]] ; then
+		echo "Refusing to tag in rpm/develop"
+		exit 1
+	fi
 	sources
 	tito tag --keep-version --accept-auto-changelog
+	git push
 }
 
 release() {
 	sources
-	git push
 	tito release koji-foreman koji-foreman-plugins
 }
 
@@ -63,6 +67,12 @@ elif [[ $ACTION == "tag-release-changed" ]] ; then
 	for dir in $(changed $1) ; do
 		pushd $dir
 		tag
+		release
+		popd
+	done
+elif [[ $ACTION == "release-changed" ]] ; then
+	for dir in $(changed $1) ; do
+		pushd $dir
 		release
 		popd
 	done
