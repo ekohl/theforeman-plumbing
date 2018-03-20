@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+require 'puppet_forge'
+require 'semverse'
+
+def forge(url)
+end
+
+def mod(name, options=nil)
+  if options.nil?
+    puts "mod '#{name}'"
+  elsif options.is_a?(String)
+    puts "mod '#{name}', '#{options}'"
+  else
+    release = PuppetForge::Module.find(name.gsub('/', '-')).current_release
+    version = Semverse::Version.new(release.version)
+    max = "#{version.major}.#{version.minor + 1}.0"
+    puts "mod '#{name}', '>= #{version} < #{max}"
+  end
+end
+
+unless ARGV[0]
+  puts "Usage: #{$0} PUPPETFILE"
+  exit 1
+end
+
+load ARGV[0]
