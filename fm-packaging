@@ -71,11 +71,15 @@ elif [[ $ACTION == "tag-release-changed" ]] ; then
 		popd
 	done
 elif [[ $ACTION == "release-changed" ]] ; then
-	for dir in $(changed $1) ; do
-		pushd $dir
-		release
-		popd
-	done
+	if [[ -e "$DIR"/package_manifest.yaml ]] ; then
+		changed $1 | xargs -n 1 basename | xargs obal release
+	else
+		for dir in $(changed $1) ; do
+			pushd $dir
+			release
+			popd
+		done
+	fi
 elif [[ $ACTION == "changed" ]] ; then
 	changed $1
 elif [[ $ACTION == "sources" ]] ; then
