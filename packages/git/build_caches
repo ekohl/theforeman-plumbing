@@ -1,0 +1,24 @@
+#!/bin/bash -xe
+
+REPOSITORY=${1:-foreman-packaging}
+CACHE_DIR=${2:-../web/static}
+DIST=${3:-el7}
+
+if [[ ! -d "$REPOSITORY" ]] ; then
+	git clone https://github.com/theforeman/foreman-packaging "$REPOSITORY"
+fi
+
+for version in 1.15 1.16 1.17 nightly ; do
+	if [[ $version == nightly ]] ; then
+		branch="rpm/develop"
+	else
+		branch="rpm/${version}"
+	fi
+
+	(
+		cd "$REPOSITORY"
+		git checkout "$branch"
+		git pull
+	)
+	./build_cache --dist "$DIST" "$REPOSITORY" > "${CACHE_DIR}/git-${version}-${DIST}.json"
+done

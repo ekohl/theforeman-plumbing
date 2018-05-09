@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+import argparse
+import configparser
+import json
+import logging
+import os
+import subprocess
+from collections import defaultdict
+from glob import glob
+
+from ansible.inventory.manager import InventoryManager
+from ansible.parsing.dataloader import DataLoader
+from ansible.vars.manager import VariableManager
+
+
+def parse_props(tito_props_path):
+    parser = configparser.ConfigParser()
+    parser.read(tito_props_path)
+
+    result = defaultdict(lambda: defaultdict(set))
+
+    sections = [section for tag, section in parser.items() if 'whitelist' in section]
+
+    for section in sections:
+        dist = section['disttag'].lstrip('.')
+
+        try:
+            scl = section['scl']
+        except KeyError:
+            prefix = ''
+        else:
+            prefix = '{}-'.format(scl)
+
+        for short_package_name in section['whitelist'].split():
+            result[short_package_name][dist].add(prefix + short_package_name)
+
+    return result
+
+
+def get_packages_manifest(manifest_path):
+    data_loader = DataLoader()
+    manifest = InventoryManager(data_loader, manifest_path)
+    variable_manager = VariableManager(data_loader, manifest)
+
+    for host in manifest.hosts.values():
+        package_vars = variable_manager.get_vars(host=host)
+        if 'package_base_dir' in package_vars:
+            spec_file = glob(os.path.join(package_vars['inventory_dir'],
+                                          package_vars['package_base_dir'], host.name,
+                                          '*.spec'))[0]
+            yield (host.name, spec_file)
+
+
+def get_packages_files(repository):
+    for path in glob(os.path.join(repository, '*', '*.spec')):
+        yield (os.path.basename(os.path.dirname(path)), path)
+
+
+def get_packages(repository):
+    manifest_path = os.path.join(repository, 'package_manifest.yaml')
+    if os.path.exists(manifest_path):
+        packages = get_packages_manifest(manifest_path)
+    else:
+        packages = get_packages_files(repository)
+
+    for name, spec_file in packages:
+        command = ['rpmspec', '--srpm', '-q', '--queryformat', '%{version}', spec_file]
+        try:
+            version = subprocess.check_output(command).decode()
+        except subprocess.CalledProcessError as ex:
+            logging.exception(ex)
+            version = None
+
+        yield name, version
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dist', default='el7')
+    parser.add_argument('repository', help='Path to the packaging repository')
+    args = parser.parse_args()
+
+    package_map = parse_props(os.path.join(args.repository, 'rel-eng', 'tito.props'))
+
+    packages = {pkg: version for name, version in get_packages(args.repository)
+                for pkg in package_map[name].get(args.dist, [])}
+
+    print(json.dumps(packages))
+
+
+if __name__ == '__main__':
+    main()
