@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>Foreman Plugins</title>
+        <link rel="stylesheet" href="/static/css/bootstrap-4.1.1.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+        <script src="/static/js/vue-2.4.2.min.js" integrity="sha384-jW6mxnPgQwOiqHOfJHLmKLmavGcrBcy/y4P5YSBSHTlQrSsbxBMPhNtAN91zNxb3" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <div class="container-fluid" id="container">
+            <h1 class="display-3">Foreman Plugins</h1>
+            <plugins :plugins="plugins" :releases="releases" :yum="yum"></plugins>
+        </div>
+
+        <script>
+            function capitalizeFirstLetter(str) {
+                return str.charAt(0).toUpperCase() + str.slice(1);
+            }
+
+            Vue.component('plugins', {
+                props: ['plugins', 'releases', 'yum'],
+                template: `
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col" v-for="release in releases" :key="release">{{ capitalizeFirstLetter(release) }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <plugin
+                                v-for="plugin in plugins"
+                                :key="plugin.name"
+                                :name="plugin.name"
+                                :url="plugin.url"
+                                :yum="plugin.yum"
+                                :deb="plugin.deb"
+                                :all-yum="yum"
+                                >
+                            </plugin>
+                        </tbody>
+                    </table>
+                `
+            });
+
+            Vue.component('plugin', {
+                props: ['name', 'url', 'yum', 'deb', 'allYum'],
+                template: `
+                    <tr>
+                        <td><a :href="url">{{ name }}</a></td>
+                        <plugin-release
+                            v-for="(versions, release) in allYum"
+                            :key="release"
+                            :repo="(versions[yum] || {})['repo']"
+                            :git="(versions[yum] || {})['git']">
+                        </plugin-release>
+                    </tr>
+                `
+            });
+
+            Vue.component('plugin-release', {
+                props: ['repo', 'git'],
+                computed: {
+                    correct: function() {
+                        return this.repo == this.git;
+                    }
+                },
+                template: `
+                    <td v-if="correct" class="table-success" >{{ repo }}</td>
+                    <td v-else class="table-danger" >{{ repo }} ({{ git }})</td>
+                `
+            });
+
+            new Vue({
+                el: '#container',
+                data: {
+                    dist: 'el7',
+                    releases: ['1.15', '1.16', '1.17', 'nightly'],
+                    yum: {},
+                    plugins: []
+                },
+                mounted: function() {
+                    const self = this;
+                    fetch('/plugins', {mode: 'cors'}).
+                        then(response => response.json()).
+                        then(plugins => self.plugins = plugins);
+
+                    for (var i=0; i < self.releases.length; i++) {
+                        const release = self.releases[i];
+                        fetch('/releases/' + release + '/yum/' + self.dist, {mode: 'cors'}).
+                            then(response => response.json()).
+                            then(versions => Vue.set(self.yum, release, versions));
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>
