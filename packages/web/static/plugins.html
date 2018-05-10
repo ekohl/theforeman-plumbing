@@ -31,6 +31,7 @@
                         <tbody>
                             <plugin
                                 v-for="plugin in plugins"
+                                v-if="plugin.maintained"
                                 :key="plugin.name"
                                 :name="plugin.name"
                                 :url="plugin.url"

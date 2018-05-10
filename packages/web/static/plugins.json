@@ -1,146 +1,457 @@
 [
   {
-    "name": "foreman_digitalocean",
-    "url": "https://github.com/theforeman/foreman-digitalocean",
-    "yum": "tfm-rubygem-foreman_digitalocean",
-    "deb": "ruby-foreman-digitalocean"
+    "name": "bastion",
+    "url": "https://github.com/katello/bastion",
+    "yum": "tfm-rubygem-bastion",
+    "deb": "ruby-bastion",
+    "maintained": true
   },
   {
     "name": "foreman_abrt",
     "url": "https://github.com/theforeman/foreman_abrt",
     "yum": "tfm-rubygem-foreman_abrt",
-    "deb": "ruby-foreman-abrt"
+    "deb": "ruby-foreman-abrt",
+    "maintained": true
   },
   {
     "name": "foreman_ansible",
     "url": "https://github.com/theforeman/foreman_ansible",
     "yum": "tfm-rubygem-foreman_ansible",
-    "deb": "ruby-foreman-ansible"
+    "deb": "ruby-foreman-ansible",
+    "maintained": true
+  },
+  {
+    "name": "foreman_audited_notifications",
+    "url": "https://github.com/frimik/foreman_audited_notifications",
+    "yum": "tfm-rubygem-foreman_audited_notifications",
+    "deb": "ruby-foreman-audited-notifications",
+    "maintained": false
+  },
+  {
+    "name": "foreman_azure",
+    "url": "https://github.com/theforeman/foreman_azure",
+    "yum": "tfm-rubygem-foreman_azure",
+    "deb": "ruby-foreman-azure",
+    "maintained": false
+  },
+  {
+    "name": "foreman_azure_rm",
+    "url": "https://github.com/01100010011001010110010101110000/foreman_azure_rm",
+    "yum": "tfm-rubygem-foreman_azure_rm",
+    "deb": "ruby-foreman-azure-rm",
+    "maintained": true
+  },
+  {
+    "name": "foreman_bootdisk",
+    "url": "https://github.com/theforeman/foreman_bootdisk",
+    "yum": "tfm-rubygem-foreman_bootdisk",
+    "deb": "ruby-foreman-bootdisk",
+    "maintained": true
   },
   {
     "name": "foreman_chef",
     "url": "https://github.com/theforeman/foreman_chef",
     "yum": "tfm-rubygem-foreman_chef",
-    "deb": "ruby-foreman-chef"
+    "deb": "ruby-foreman-chef",
+    "maintained": true
+  },
+  {
+    "name": "foreman_cockpit",
+    "url": "https://github.com/theforeman/foreman_cockpit",
+    "yum": "tfm-rubygem-foreman_cockpit",
+    "deb": "ruby-foreman-cockpit",
+    "maintained": false
+  },
+  {
+    "name": "foreman_column_view",
+    "url": "https://github.com/GregSutcliffe/foreman_column_view",
+    "yum": "tfm-rubygem-foreman_column_view",
+    "deb": "ruby-foreman-column-view",
+    "maintained": true
+  },
+  {
+    "name": "foreman_content",
+    "url": "https://github.com/theforeman/foreman_content",
+    "yum": "tfm-rubygem-foreman_content",
+    "deb": "ruby-foreman-content",
+    "maintained": false
+  },
+  {
+    "name": "foreman_cpp_cloudstack",
+    "url": "https://github.com/bytemine/foreman_cpp_cloudstack",
+    "yum": "tfm-rubygem-foreman_cpp_cloudstack",
+    "deb": "ruby-foreman-cpp-cloudstack",
+    "maintained": false
+  },
+  {
+    "name": "foreman_custom_banner",
+    "url": "https://github.com/jcmcken/foreman_custom_banner",
+    "yum": "tfm-rubygem-foreman_custom_banner",
+    "deb": "ruby-foreman-custom-banner",
+    "maintained": true
   },
   {
     "name": "foreman_custom_parameters",
     "url": "https://github.com/theforeman/foreman_custom_parameters",
     "yum": "tfm-rubygem-foreman_custom_parameters",
-    "deb": "ruby-foreman-custom-parameters"
+    "deb": "ruby-foreman-custom-parameters",
+    "maintained": true
+  },
+  {
+    "name": "foreman_datacenter",
+    "url": "https://github.com/theforeman/foreman_datacenter",
+    "yum": "tfm-rubygem-foreman_datacenter",
+    "deb": "ruby-foreman-datacenter",
+    "maintained": true
+  },
+  {
+    "name": "foreman_default_hostgroup",
+    "url": "https://github.com/theforeman/foreman_default_hostgroup",
+    "yum": "tfm-rubygem-foreman_default_hostgroup",
+    "deb": "ruby-foreman-default-hostgroup",
+    "maintained": true
+  },
+  {
+    "name": "foreman_deployments",
+    "url": "https://github.com/theforeman/foreman_deployments",
+    "yum": "tfm-rubygem-foreman_deployments",
+    "deb": "ruby-foreman-deployments",
+    "maintained": false
   },
   {
     "name": "foreman_dhcp_browser",
     "url": "https://github.com/theforeman/foreman_dhcp_browser",
     "yum": "tfm-rubygem-foreman_dhcp_browser",
-    "deb": "ruby-foreman-dhcp-browser"
+    "deb": "ruby-foreman-dhcp-browser",
+    "maintained": true
+  },
+  {
+    "name": "foreman_digitalocean",
+    "url": "https://github.com/theforeman/foreman-digitalocean",
+    "yum": "tfm-rubygem-foreman_digitalocean",
+    "deb": "ruby-foreman-digitalocean",
+    "maintained": true
+  },
+  {
+    "name": "foreman_discovery",
+    "url": "https://github.com/theforeman/foreman_discovery",
+    "yum": "tfm-rubygem-foreman_discovery",
+    "deb": "ruby-foreman-discovery",
+    "maintained": true
+  },
+  {
+    "name": "foreman_dlm",
+    "url": "https://github.com/dm-drogeriemarkt/foreman_dlm",
+    "yum": "tfm-rubygem-foreman_dlm",
+    "deb": "ruby-foreman-dlm",
+    "maintained": true
   },
   {
     "name": "foreman_docker",
     "url": "https://github.com/theforeman/foreman_docker",
     "yum": "tfm-rubygem-foreman_docker",
-    "deb": "ruby-foreman-docker"
+    "deb": "ruby-foreman-docker",
+    "maintained": true
+  },
+  {
+    "name": "foreman_epel_release",
+    "url": "https://github.com/frimik/foreman_epel_release",
+    "yum": "tfm-rubygem-foreman_epel_release",
+    "deb": "ruby-foreman-epel-release",
+    "maintained": false
   },
   {
     "name": "foreman_expire_hosts",
     "url": "https://github.com/theforeman/foreman_expire_hosts",
     "yum": "tfm-rubygem-foreman_expire_hosts",
-    "deb": "ruby-foreman-expire-hosts"
+    "deb": "ruby-foreman-expire-hosts",
+    "maintained": true
   },
   {
     "name": "foreman_graphite",
     "url": "https://github.com/theforeman/foreman_graphite",
     "yum": "tfm-rubygem-foreman_graphite",
-    "deb": "ruby-foreman-graphite"
+    "deb": "ruby-foreman-graphite",
+    "maintained": true
   },
   {
     "name": "foreman_hooks",
     "url": "https://github.com/theforeman/foreman_hooks",
     "yum": "tfm-rubygem-foreman_hooks",
-    "deb": "ruby-foreman-hooks"
+    "deb": "ruby-foreman-hooks",
+    "maintained": true
   },
   {
     "name": "foreman_host_extra_validator",
     "url": "https://github.com/theforeman/foreman_host_extra_validator",
     "yum": "tfm-rubygem-foreman_host_extra_validator",
-    "deb": "ruby-foreman-host-extra-validator"
+    "deb": "ruby-foreman-host-extra-validator",
+    "maintained": true
+  },
+  {
+    "name": "foreman_host_overview",
+    "url": "https://github.com/sfu-rcg/foreman_host_overview",
+    "yum": "tfm-rubygem-foreman_host_overview",
+    "deb": "ruby-foreman-host-overview",
+    "maintained": false
+  },
+  {
+    "name": "foreman_host_rundeck",
+    "url": "https://github.com/theforeman/foreman_host_rundeck",
+    "yum": "tfm-rubygem-foreman_host_rundeck",
+    "deb": "ruby-foreman-host-rundeck",
+    "maintained": false
+  },
+  {
+    "name": "foreman_hyperv",
+    "url": "https://github.com/ananace/foreman_hyperv",
+    "yum": "tfm-rubygem-foreman_hyperv",
+    "deb": "ruby-foreman-hyperv",
+    "maintained": true
+  },
+  {
+    "name": "foreman_icinga",
+    "url": "https://github.com/timogoebel/foreman_icinga",
+    "yum": "tfm-rubygem-foreman_icinga",
+    "deb": "ruby-foreman-icinga",
+    "maintained": false
+  },
+  {
+    "name": "foreman_mco",
+    "url": "https://github.com/witlessbird/foreman_mco",
+    "yum": "tfm-rubygem-foreman_mco",
+    "deb": "ruby-foreman-mco",
+    "maintained": false
   },
   {
     "name": "foreman_memcache",
     "url": "https://github.com/theforeman/foreman_memcache",
     "yum": "tfm-rubygem-foreman_memcache",
-    "deb": "ruby-foreman-memcache"
+    "deb": "ruby-foreman-memcache",
+    "maintained": true
   },
   {
     "name": "foreman_monitoring",
     "url": "https://github.com/theforeman/foreman_monitoring",
     "yum": "tfm-rubygem-foreman_monitoring",
-    "deb": "ruby-foreman-monitoring"
+    "deb": "ruby-foreman-monitoring",
+    "maintained": true
   },
   {
     "name": "foreman_noenv",
     "url": "https://github.com/joshuabaird/foreman_noenv",
     "yum": "tfm-rubygem-foreman_noenv",
-    "deb": "ruby-foreman-noenv"
+    "deb": "ruby-foreman-noenv",
+    "maintained": true
   },
   {
     "name": "foreman_omaha",
     "url": "https://github.com/theforeman/foreman_omaha",
     "yum": "tfm-rubygem-foreman_omaha",
-    "deb": "ruby-foreman-omaha"
+    "deb": "ruby-foreman-omaha",
+    "maintained": true
   },
   {
     "name": "foreman_one",
     "url": "https://github.com/theforeman/foreman-one",
     "yum": "tfm-rubygem-foreman_one",
-    "deb": "ruby-foreman-one"
+    "deb": "ruby-foreman-one",
+    "maintained": true
   },
   {
     "name": "foreman_openscap",
     "url": "https://github.com/theforeman/foreman_openscap",
     "yum": "tfm-rubygem-foreman_openscap",
-    "deb": "ruby-foreman-openscap"
+    "deb": "ruby-foreman-openscap",
+    "maintained": true
+  },
+  {
+    "name": "foreman_openstack_cluster",
+    "url": "https://github.com/GregSutcliffe/foreman_openstack_cluster",
+    "yum": "tfm-rubygem-foreman_openstack_cluster",
+    "deb": "ruby-foreman-openstack-cluster",
+    "maintained": false
+  },
+  {
+    "name": "foreman_ovirt",
+    "url": "https://github.com/oourfali/foreman_ovirt",
+    "yum": "tfm-rubygem-foreman_ovirt",
+    "deb": "ruby-foreman-ovirt",
+    "maintained": false
+  },
+  {
+    "name": "foreman_param_lookup",
+    "url": "https://github.com/domcleal/foreman_param_lookup",
+    "yum": "tfm-rubygem-foreman_param_lookup",
+    "deb": "ruby-foreman-param-lookup",
+    "maintained": false
+  },
+  {
+    "name": "foreman_pipeline",
+    "url": "https://github.com/theforeman/foreman_pipeline",
+    "yum": "tfm-rubygem-foreman_pipeline",
+    "deb": "ruby-foreman-pipeline",
+    "maintained": false
+  },
+  {
+    "name": "foreman_plugin_computeresource_add_remove_interface",
+    "url": "https://github.com/MarcGrimme/foreman_plugin_computeresource_add_remove_interface",
+    "yum": "tfm-rubygem-foreman_plugin_computeresource_add_remove_interface",
+    "deb": "ruby-foreman-plugin-computeresource-add-remove-interface",
+    "maintained": false
+  },
+  {
+    "name": "foreman_plugin_exec_cmd",
+    "url": "https://github.com/MarcGrimme/foreman_plugin_exec_cmd",
+    "yum": "tfm-rubygem-foreman_plugin_exec_cmd",
+    "deb": "ruby-foreman-plugin-exec-cmd",
+    "maintained": false
+  },
+  {
+    "name": "foreman_radiator",
+    "url": "https://github.com/isratrade/foreman_radiator",
+    "yum": "tfm-rubygem-foreman_radiator",
+    "deb": "ruby-foreman-radiator",
+    "maintained": false
   },
   {
     "name": "foreman_remote_execution",
     "url": "https://github.com/theforeman/foreman_remote_execution",
     "yum": "tfm-rubygem-foreman_remote_execution",
-    "deb": "ruby-foreman-remote-execution"
+    "deb": "ruby-foreman-remote-execution",
+    "maintained": true
+  },
+  {
+    "name": "foreman_rescue",
+    "url": "https://github.com/dm-drogeriemarkt/foreman_rescue",
+    "yum": "tfm-rubygem-foreman_rescue",
+    "deb": "ruby-foreman-rescue",
+    "maintained": true
+  },
+  {
+    "name": "foreman_reserve",
+    "url": "https://github.com/david-caro/foreman_reserve",
+    "yum": "tfm-rubygem-foreman_reserve",
+    "deb": "ruby-foreman-reserve",
+    "maintained": false
+  },
+  {
+    "name": "foreman_resources",
+    "url": "https://github.com/arnoudj/foreman_resources",
+    "yum": "tfm-rubygem-foreman_resources",
+    "deb": "ruby-foreman-resources",
+    "maintained": false
   },
   {
     "name": "foreman_salt",
     "url": "https://github.com/theforeman/foreman_salt",
     "yum": "tfm-rubygem-foreman_salt",
-    "deb": "ruby-foreman-salt"
+    "deb": "ruby-foreman-salt",
+    "maintained": true
   },
   {
     "name": "foreman_scaleway",
     "url": "https://github.com/theforeman/foreman_scaleway",
     "yum": "tfm-rubygem-foreman_scaleway",
-    "deb": "ruby-foreman-scaleway"
+    "deb": "ruby-foreman-scaleway",
+    "maintained": true
   },
   {
-    "name": "foreman-tasks",
-    "url": "https://github.com/theforeman/foreman-tasks",
-    "yum": "tfm-rubygem-foreman-tasks",
-    "deb": "ruby-foreman-tasks"
+    "name": "foreman_scc_manager",
+    "url": "https://github.com/ATIX-AG/foreman_scc_manager",
+    "yum": "tfm-rubygem-foreman_scc_manager",
+    "deb": "ruby-foreman-scc-manager",
+    "maintained": true
+  },
+  {
+    "name": "foreman_sentry",
+    "url": "https://github.com/brandonweeks/foreman_sentry",
+    "yum": "tfm-rubygem-foreman_sentry",
+    "deb": "ruby-foreman-sentry",
+    "maintained": true
+  },
+  {
+    "name": "foreman_setup",
+    "url": "https://github.com/theforeman/foreman_setup",
+    "yum": "tfm-rubygem-foreman_setup",
+    "deb": "ruby-foreman-setup",
+    "maintained": true
+  },
+  {
+    "name": "foreman_slack",
+    "url": "https://github.com/shlomizadok/foreman_slack",
+    "yum": "tfm-rubygem-foreman_slack",
+    "deb": "ruby-foreman-slack",
+    "maintained": true
+  },
+  {
+    "name": "foreman_snapshot_management",
+    "url": "https://github.com/ATIX-AG/foreman_snapshot_management",
+    "yum": "tfm-rubygem-foreman_snapshot_management",
+    "deb": "ruby-foreman-snapshot-management",
+    "maintained": true
+  },
+  {
+    "name": "foreman_spacewalk",
+    "url": "https://github.com/dm-drogeriemarkt/foreman_spacewalk",
+    "yum": "tfm-rubygem-foreman_spacewalk",
+    "deb": "ruby-foreman-spacewalk",
+    "maintained": true
   },
   {
     "name": "foreman_templates",
     "url": "https://github.com/theforeman/foreman_templates",
     "yum": "tfm-rubygem-foreman_templates",
-    "deb": "ruby-foreman-templates"
+    "deb": "ruby-foreman-templates",
+    "maintained": true
+  },
+  {
+    "name": "foreman_wreckingball",
+    "url": "https://github.com/dm-drogeriemarkt/foreman_wreckingball",
+    "yum": "tfm-rubygem-foreman_wreckingball",
+    "deb": "ruby-foreman-wreckingball",
+    "maintained": true
   },
   {
     "name": "foreman_xen",
     "url": "https://github.com/theforeman/foreman-xen",
     "yum": "tfm-rubygem-foreman_xen",
-    "deb": "ruby-foreman-xen"
+    "deb": "ruby-foreman-xen",
+    "maintained": true
+  },
+  {
+    "name": "hostgroup_extra_validator_foreman",
+    "url": "https://github.com/cernops/hostgroup_extra_validator_foreman",
+    "yum": "tfm-rubygem-hostgroup_extra_validator_foreman",
+    "deb": "ruby-hostgroup-extra-validator-foreman",
+    "maintained": false
+  },
+  {
+    "name": "hubot_notify",
+    "url": "https://github.com/GregSutcliffe/hubot_notify",
+    "yum": "tfm-rubygem-hubot_notify",
+    "deb": "ruby-hubot-notify",
+    "maintained": false
+  },
+  {
+    "name": "ovirt_provision_plugin",
+    "url": "https://github.com/theforeman/ovirt_provision_plugin",
+    "yum": "tfm-rubygem-ovirt_provision_plugin",
+    "deb": "ruby-ovirt-provision-plugin",
+    "maintained": true
   },
   {
     "name": "puppetdb_foreman",
     "url": "https://github.com/theforeman/puppetdb_foreman",
     "yum": "tfm-rubygem-puppetdb_foreman",
-    "deb": "ruby-puppetdb-foreman"
+    "deb": "ruby-puppetdb-foreman",
+    "maintained": true
+  },
+  {
+    "name": "staypuft",
+    "url": "https://github.com/theforeman/staypuft",
+    "yum": "tfm-rubygem-staypuft",
+    "deb": "ruby-staypuft",
+    "maintained": false
   }
 ]
