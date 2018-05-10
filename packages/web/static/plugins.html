@@ -37,6 +37,7 @@
                                 :yum="plugin.yum"
                                 :deb="plugin.deb"
                                 :all-yum="yum"
+                                :releases="releases"
                                 >
                             </plugin>
                         </tbody>
@@ -45,15 +46,15 @@
             });
 
             Vue.component('plugin', {
-                props: ['name', 'url', 'yum', 'deb', 'allYum'],
+                props: ['name', 'url', 'yum', 'deb', 'allYum', 'releases'],
                 template: `
                     <tr>
                         <td><a :href="url">{{ name }}</a></td>
                         <plugin-release
-                            v-for="(versions, release) in allYum"
+                            v-for="release in releases"
                             :key="release"
-                            :repo="(versions[yum] || {})['repo']"
-                            :git="(versions[yum] || {})['git']">
+                            :repo="((allYum[release] || {})[yum] || {})['repo']"
+                            :git="((allYum[release] || {})[yum] || {})['git']">
                         </plugin-release>
                     </tr>
                 `
