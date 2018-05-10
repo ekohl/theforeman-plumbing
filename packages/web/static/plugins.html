@@ -10,7 +10,7 @@
     <body>
         <div class="container-fluid" id="container">
             <h1 class="display-3">Foreman Plugins</h1>
-            <plugins :plugins="plugins" :releases="releases" :yum="yum"></plugins>
+            <plugins :plugins="plugins" :releases="releases" :yum="yum" :upstream="upstream"></plugins>
         </div>
 
         <script>
@@ -19,13 +19,14 @@
             }
 
             Vue.component('plugins', {
-                props: ['plugins', 'releases', 'yum'],
+                props: ['plugins', 'releases', 'yum', 'upstream'],
                 template: `
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th scope="col">Name</th>
                                 <th scope="col" v-for="release in releases" :key="release">{{ capitalizeFirstLetter(release) }}</th>
+                                <th scope="col">Upstream</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -39,6 +40,7 @@
                                 :deb="plugin.deb"
                                 :all-yum="yum"
                                 :releases="releases"
+                                :upstream="upstream[plugin.yum]"
                                 >
                             </plugin>
                         </tbody>
@@ -47,7 +49,7 @@
             });
 
             Vue.component('plugin', {
-                props: ['name', 'url', 'yum', 'deb', 'allYum', 'releases'],
+                props: ['name', 'url', 'yum', 'deb', 'allYum', 'releases', 'upstream'],
                 template: `
                     <tr>
                         <td><a :href="url">{{ name }}</a></td>
@@ -57,6 +59,7 @@
                             :repo="((allYum[release] || {})[yum] || {})['repo']"
                             :git="((allYum[release] || {})[yum] || {})['git']">
                         </plugin-release>
+                        <td>{{ upstream }}</td>
                     </tr>
                 `
             });
@@ -80,13 +83,22 @@
                     dist: 'el7',
                     releases: ['1.15', '1.16', '1.17', 'nightly'],
                     yum: {},
+                    upstream: {},
                     plugins: []
                 },
                 mounted: function() {
                     const self = this;
                     fetch('/plugins', {mode: 'cors'}).
                         then(response => response.json()).
-                        then(plugins => self.plugins = plugins);
+                        then(plugins => {
+                            self.plugins = plugins;
+                            for (var i=0; i < plugins.length; i++) {
+                                const plugin = plugins[i].yum;
+                                fetch('/upstream/' + plugin, {mode: 'cors'}).
+                                    then(response => response.json()).
+                                    then(version => Vue.set(self.upstream, plugin, version));
+                            }
+                        });
 
                     for (var i=0; i < self.releases.length; i++) {
                         const release = self.releases[i];
