@@ -3,10 +3,14 @@
 REPOSITORY=${1:-foreman-packaging}
 CACHE_DIR=${2:-../web/static}
 DIST=${3:-el7}
+REMOTE=${4:-origin}
 
-if [[ ! -d "$REPOSITORY" ]] ; then
-	git clone https://github.com/theforeman/foreman-packaging "$REPOSITORY"
+if [[ -d "$REPOSITORY" ]] ; then
+	( cd "$REPOSITORY" && git fetch "$REMOTE" )
+else
+	git clone https://github.com/theforeman/foreman-packaging "$REPOSITORY" -o "$REMOTE"
 fi
+
 
 for version in 1.15 1.16 1.17 nightly ; do
 	if [[ $version == nightly ]] ; then
@@ -15,10 +19,14 @@ for version in 1.15 1.16 1.17 nightly ; do
 		branch="rpm/${version}"
 	fi
 
-	(
-		cd "$REPOSITORY"
-		git checkout "$branch"
-		git pull
-	)
-	./build_cache --dist "$DIST" "$REPOSITORY" > "${CACHE_DIR}/git-${version}-${DIST}.json"
+	( cd "$REPOSITORY" && git checkout "${REMOTE}/${branch}")
+	ref=$(git --git-dir "${REPOSITORY}/.git" rev-parse HEAD | xargs echo)
+	echo $ref
+	cache="${CACHE_DIR}/git-${ref}-${DIST}.json"
+
+	if [[ ! -f "$cache" ]] ; then
+		./build_cache --dist "$DIST" "$REPOSITORY" > "$cache"
+	fi
+
+	ln -snf "git-${ref}-${DIST}.json" "${CACHE_DIR}/git-${version}-${DIST}.json"
 done
