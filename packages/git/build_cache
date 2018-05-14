@@ -24,14 +24,12 @@ def parse_props(tito_props_path):
     for section in sections:
         dist = section['disttag'].lstrip('.')
 
-        try:
-            scl = section['scl']
-        except KeyError:
-            prefix = ''
-        else:
-            prefix = '{}-'.format(scl)
-
         for short_package_name in section['whitelist'].split():
+            if 'scl' in section and short_package_name.startswith('rubygem-'):
+                prefix = section['scl'] + '-'
+            else:
+                prefix = ''
+
             result[short_package_name][dist].add(prefix + short_package_name)
 
     return result
