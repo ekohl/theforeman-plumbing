@@ -31,7 +31,7 @@ pick() {
 }
 
 changed() {
-	git --git-dir $DIR/.git show --name-only $1 | grep .spec | xargs --no-run-if-empty dirname | sort -u | sed "s|^|$DIR/|"
+	git --git-dir $DIR/.git show --pretty="format:" --name-only $1 | grep .spec | xargs --no-run-if-empty dirname | sort -u | sed "s|^|$DIR/|"
 }
 
 sources() {
