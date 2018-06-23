@@ -1,21 +1,23 @@
 #!/usr/bin/env python2
-from flask import Flask, jsonify
 import yum
-
+from flask import Flask, abort, jsonify
 
 app = Flask(__name__)
 
 
-NAME = 'foreman-plugins-{version}-{dist}-{arch}'
-BASEURL = 'https://yum.theforeman.org/plugins/{version}/{dist}/{arch}/'
+NAME = 'foreman-{repo}-{version}-{dist}-{arch}'
+BASEURL = 'https://yum.theforeman.org/{repo}/{version}/{dist}/{arch}/'
 
 
-@app.route('/<version>', defaults={'dist': 'el7', 'arch': 'x86_64'})
-@app.route('/<version>/<dist>', defaults={'arch': 'x86_64'})
-@app.route('/<version>/<dist>/<arch>')
-def packages(version, dist, arch):
-    name = NAME.format(arch=arch, dist=dist, version=version)
-    baseurl = BASEURL.format(arch=arch, dist=dist, version=version)
+@app.route('/<repo>/<version>')
+@app.route('/<repo>/<version>/<dist>')
+@app.route('/<repo>/<version>/<dist>/<arch>')
+def packages(repo, version, dist='el7', arch='x86_64'):
+    if repo not in ('plugins', 'releases'):
+        abort(400)
+
+    name = NAME.format(repo=repo, arch=arch, dist=dist, version=version)
+    baseurl = BASEURL.format(repo=repo, arch=arch, dist=dist, version=version)
 
     yb = yum.YumBase()
     yb.setCacheDir(suffix='/' + name)
