@@ -27,7 +27,7 @@ def plugins():
 
 @app.route('/releases/<rel>/yum/<dist>')
 def release(rel, dist):
-    response = requests.get('http://localhost:5001/{}/{}'.format(rel, dist))
+    response = requests.get('http://localhost:5001/plugins/{}/{}'.format(rel, dist))
     response.raise_for_status()
 
     with open(os.path.join(app.static_folder, 'git-{}-{}.json'.format(rel, dist))) as fp:

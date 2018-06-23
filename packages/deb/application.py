@@ -9,7 +9,7 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 
 
-BASEURL = 'https://deb.theforeman.org/dists/plugins/{version}/binary-{arch}/Packages.gz'
+BASEURL = 'https://deb.theforeman.org/dists/{distribution}/{version}/binary-{arch}/Packages.gz'
 COMMAND = ['grep-dctrl', '-s', 'Package,Version', '']
 
 
@@ -26,10 +26,10 @@ def get_packages(lines):
             package = None
 
 
-@app.route('/<version>')
-@app.route('/<version>/<arch>')
-def packages(version, arch='amd64'):
-    response = requests.get(BASEURL.format(version=version, arch=arch))
+@app.route('/<distribution>/<version>')
+@app.route('/<distribution>/<version>/<arch>')
+def packages(distribution, version, arch='amd64'):
+    response = requests.get(BASEURL.format(distribution=distribution, version=version, arch=arch))
     response.raise_for_status()
 
     data = zlib.decompress(response.content, zlib.MAX_WBITS | 32)
