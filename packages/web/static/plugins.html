@@ -89,9 +89,6 @@
                             return this.versions[dist]['git'];
                         }
                     },
-                    sync: function() {
-                        return ;
-                    },
                     status: function() {
                         const versions = Object.values(this.versions);
 
@@ -110,9 +107,9 @@
                 },
                 template: `
                     <td v-if="status === 'correct'" class="table-success">{{ version }}</td>
-                    <td v-else-if="status === 'missing'"></td>
                     <td v-else-if="status === 'outdated'" class="table-warning">{{ version }}</td>
-                    <td v-else class="table-danger">{{ versions }}</td>
+                    <td v-else-if="status === 'out-of-sync'" class="table-danger">{{ versions }}</td>
+                    <td v-else></td>
                 `
             });
 
