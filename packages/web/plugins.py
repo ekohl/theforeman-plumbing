@@ -67,4 +67,7 @@ def upstream(package):
     response.raise_for_status()
     version = get_version(response.json())
 
-    return jsonify(version)
+    response = jsonify(version)
+    response.cache_control.max_age = 3600
+    response.cache_control.public = True
+    return response
