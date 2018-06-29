@@ -15,6 +15,31 @@ PREFIXES = {
 }
 
 
+def get_yum_release(release, dist):
+    url = 'http://localhost:5001/plugins/{}/{}'.format(release, dist)
+    filename = 'git-rpm-{}-{}.json'.format(release, dist)
+    return get_release(url, filename)
+
+
+def get_deb_release(release):
+    url = 'http://localhost:5002/plugins/{}'.format(release)
+    return get_release(url)
+
+
+def get_release(url, filename=None):
+    response = requests.get(url)
+    response.raise_for_status()
+
+    if filename:
+        with open(os.path.join(app.static_folder, filename)) as fp:
+            git = json.load(fp)
+    else:
+        git = {}
+
+    return {pkg: {'repo': data['version'], 'git': git.get(pkg)}
+            for pkg, data in response.json().items() if not pkg.endswith('-doc')}
+
+
 @app.route('/')
 def index():
     return app.send_static_file('plugins.html')
@@ -25,17 +50,14 @@ def plugins():
     return app.send_static_file('plugins.json')
 
 
-@app.route('/releases/<rel>/yum/<dist>')
-def release(rel, dist):
-    response = requests.get('http://localhost:5001/plugins/{}/{}'.format(rel, dist))
-    response.raise_for_status()
+@app.route('/releases/<rel>')
+def release(rel):
+    result = {
+        'el7': get_yum_release(rel, 'el7'),
+        'deb': get_deb_release(rel),
+    }
 
-    with open(os.path.join(app.static_folder, 'git-rpm-{}-{}.json'.format(rel, dist))) as fp:
-        git = json.load(fp)
-
-    results = {pkg: {'repo': data['version'], 'git': git.get(pkg)}
-               for pkg, data in response.json().items() if not pkg.endswith('-doc')}
-    return jsonify(results)
+    return jsonify(result)
 
 
 @app.route('/upstream/<package>')
