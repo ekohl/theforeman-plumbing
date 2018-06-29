@@ -12,6 +12,7 @@ app = Flask(__name__)
 BASEURL = 'https://deb.theforeman.org/dists/plugins/{version}/binary-{arch}/Packages.gz'
 COMMAND = ['grep-dctrl', '-s', 'Package,Version', '']
 
+
 def get_packages(lines):
     package = None
     for line in lines.split('\n'):
@@ -31,7 +32,7 @@ def packages(version, arch='amd64'):
     response = requests.get(BASEURL.format(version=version, arch=arch))
     response.raise_for_status()
 
-    data = zlib.decompress(response.content, zlib.MAX_WBITS|32)
+    data = zlib.decompress(response.content, zlib.MAX_WBITS | 32)
 
     process = subprocess.Popen(COMMAND, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output = process.communicate(data)[0].decode('utf-8')
