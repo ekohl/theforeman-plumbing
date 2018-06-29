@@ -30,7 +30,7 @@ def get_packages(lines):
 @app.route('/<distribution>/<version>/<arch>')
 def packages(distribution, version, arch='amd64'):
     response = requests.get(BASEURL.format(distribution=distribution, version=version, arch=arch))
-    if response.status == 404:
+    if response.status_code == 404:
         abort(404)
     response.raise_for_status()
 
