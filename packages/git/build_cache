@@ -78,10 +78,16 @@ def main():
     parser.add_argument('repository', help='Path to the packaging repository')
     args = parser.parse_args()
 
-    package_map = parse_props(os.path.join(args.repository, 'rel-eng', 'tito.props'))
+    tito_file = os.path.join(args.repository, 'rel-eng', 'tito.props')
 
-    packages = {pkg: version for name, version in get_packages(args.repository)
-                for pkg in package_map[name].get(args.dist, [])}
+    if os.path.isfile(tito_file):
+        # RPM
+        package_map = parse_props(tito_file)
+
+        packages = {pkg: version for name, version in get_packages(args.repository)
+                    for pkg in package_map[name].get(args.dist, [])}
+    else:
+        raise SystemExit('Unknown repository format')
 
     print(json.dumps(packages))
 

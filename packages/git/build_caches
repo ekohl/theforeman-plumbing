@@ -12,21 +12,23 @@ else
 fi
 
 
-for version in 1.15 1.16 1.17 nightly ; do
-	if [[ $version == nightly ]] ; then
-		branch="rpm/develop"
-	else
-		branch="rpm/${version}"
-	fi
+for format in rpm ; do
+	for version in 1.15 1.16 1.17 nightly ; do
+		if [[ $version == nightly ]] ; then
+			branch="${format}/develop"
+		else
+			branch="${format}/${version}"
+		fi
 
-	( cd "$REPOSITORY" && git checkout "${REMOTE}/${branch}")
-	ref=$(git --git-dir "${REPOSITORY}/.git" rev-parse HEAD | xargs echo)
-	echo $ref
-	cache="${CACHE_DIR}/git-${ref}-${DIST}.json"
+		( cd "$REPOSITORY" && git checkout "${REMOTE}/${branch}")
+		ref=$(git --git-dir "${REPOSITORY}/.git" rev-parse HEAD | xargs echo)
+		echo $ref
+		cache="${CACHE_DIR}/git-${ref}-${DIST}.json"
 
-	if [[ ! -f "$cache" ]] ; then
-		./build_cache --dist "$DIST" "$REPOSITORY" > "$cache"
-	fi
+		if [[ ! -f "$cache" ]] ; then
+			./build_cache --dist "$DIST" "$REPOSITORY" > "$cache"
+		fi
 
-	ln -snf "git-${ref}-${DIST}.json" "${CACHE_DIR}/git-${version}-${DIST}.json"
+		ln -snf "git-${ref}-${DIST}.json" "${CACHE_DIR}/git-${format}-${version}-${DIST}.json"
+	done
 done
