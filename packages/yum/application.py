@@ -20,16 +20,12 @@ def packages(repo, version, dist='el7', arch='x86_64'):
     baseurl = BASEURL.format(repo=repo, arch=arch, dist=dist, version=version)
 
     yb = yum.YumBase()
-    yb.setCacheDir(suffix='/' + name)
+    yb.setCacheDir()
 
     for repo in yb.repos.listEnabled():
         repo.disable()
 
-    repo = yum.yumRepo.YumRepository(name)
-    repo.baseurl = baseurl
-    repo.enable()
-
-    yb.repos.add(repo)
+    yb.add_enable_repo(name, [baseurl])
 
     return jsonify({pkg.name: {'version': pkg.version} for pkg in yb.pkgSack.returnNewestByName()})
 
