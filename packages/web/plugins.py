@@ -50,10 +50,12 @@ def upstream(package):
 
     if package_type == 'rubygem':
         url = 'https://rubygems.org/api/v1/gems/{}.json'.format(name)
+
         def get_version(data):
             return data['version']
     elif package_type == 'nodejs':
         url = 'https://api.npms.io/v2/package/{}'.format(name)
+
         def get_version(data):
             return data['collected']['metadata']['version']
     else:
