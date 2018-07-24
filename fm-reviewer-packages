@@ -5,4 +5,4 @@ if [[ -z $1 ]] ; then
 fi
 
 cd $HOME/dev/foreman-packaging
-GITHUB_TOKEN=$(cat $HOME/.github_changelog_generator_token) reviewer theforeman/foreman-packaging $1
+GITHUB_TOKEN=$(pass show github/changelog) reviewer theforeman/foreman-packaging $1
