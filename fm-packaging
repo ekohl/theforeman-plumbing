@@ -9,6 +9,20 @@ if [[ -z $ACTION ]] ; then
 fi
 shift
 
+move_old() {
+	if [[ -e "$DIR"/package_manifest.yaml ]] ; then
+		git rm -f "$DIR"/package_manifest.yaml
+	fi
+
+	for to_move in $(git --git-dir $DIR/.git show --name-only $COMMIT | grep ^packages) ; do
+		if [[ -f "$DIR/$to_move" ]] ; then
+			local target="$DIR/$(basename $(dirname $to_move))"
+			mkdir -p "$target"
+			git mv "$DIR/$to_move" "$target"
+		fi
+	done
+}
+
 pick() {
 	VERSION=$1
 	COMMIT=$2
@@ -23,11 +37,10 @@ pick() {
 	git checkout rpm/$VERSION
 	git pull
 	git cherry-pick $COMMIT || true
-	for to_move in $(git --git-dir $DIR/.git show --name-only $COMMIT | grep ^packages) ; do
-		if [[ -f "$DIR/$to_move" ]] ; then
-			git mv "$DIR/$to_move" "$DIR/$(basename $(dirname $to_move))"
-		fi
-	done
+
+	if [[ $VERSION == "1.16" ]] || [[ $VERSION == "1.17" ]] ; then
+		move_old
+	fi
 }
 
 changed() {
@@ -53,6 +66,14 @@ release() {
 	tito release koji-foreman koji-foreman-plugins
 }
 
+get_build() {
+	rpmspec --srpm -q --define 'dist .el7' --queryformat "%{name}-%{version}-%{release}\n" "$@"
+}
+
+get_tfm_build() {
+	get_build --define 'scl tfm' "$@"
+}
+
 if [[ $ACTION == "pick" ]] ; then
 	pick "$@"
 elif [[ $ACTION == "tag" ]] ; then
@@ -72,7 +93,7 @@ elif [[ $ACTION == "tag-release-changed" ]] ; then
 	done
 elif [[ $ACTION == "release-changed" ]] ; then
 	if [[ -e "$DIR"/package_manifest.yaml ]] ; then
-		changed $1 | xargs -n 1 basename | xargs obal release
+		changed $1 | xargs -n 1 basename | xargs obal release -e build_package_wait=False
 	else
 		for dir in $(changed $1) ; do
 			pushd $dir
@@ -86,6 +107,14 @@ elif [[ $ACTION == "sources" ]] ; then
 	sources
 elif [[ $ACTION == "release" ]] ; then
 	release
+elif [[ $ACTION == "get-build" ]] ; then
+	for dir in $(changed $1) ; do
+		get_build $dir/*.spec
+	done
+elif [[ $ACTION == "get-tfm-build" ]] ; then
+	for dir in $(changed $1) ; do
+		get_tfm_build $dir/*.spec
+	done
 else
 	echo "Usage: $0 ACTION"
 	exit 1
