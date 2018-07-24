@@ -32,6 +32,10 @@ def get_to_update(current_labels, desired_labels):
             yield current, desired
 
 
+def repository_has_label(label, repository):
+    return '/puppet-' not in repository or label not in ('Modulesync', 'skip-changelog')
+
+
 @click.command()
 @click.argument('repository', nargs=-1)
 @click.option('--dry-run', is_flag=True)
@@ -50,7 +54,7 @@ def cli(repository, dry_run, config):
         current = {label.name: label for label in repo.get_labels()}
 
         to_add = [label for label in labels if get_label(current, label) is None and
-                  (label['name'] != 'Modulesync' or '/puppet-' not in repo.name)]
+                  repository_has_label(label['name'], repo.name)]
         to_update = list(get_to_update(current, labels))
 
         if dry_run:
