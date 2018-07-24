@@ -1,0 +1,79 @@
+#!/bin/bash -xe
+
+BASE_DIR=$HOME/dev
+CLONE_DIR=$BASE_DIR/packaging-deps
+PACKAGING_DIR=$BASE_DIR/foreman-packaging
+
+ensure_checkout() {
+	local repo=$1
+	local checkout=$2
+	local branch=$3
+
+	(
+		if [[ -d $checkout ]] ; then
+			cd $checkout
+			git checkout $branch
+			git reset --hard
+			git pull
+		else
+			git clone $repo $checkout -o upstream -b $branch
+		fi
+	)
+}
+
+update_gem_deps() {
+	local checkout="$1"
+	local spec_file="$2"
+
+	if [[ -f "${checkout}/Gemfile" ]] ; then
+		$PACKAGING_DIR/get-gemfile-deps "${checkout}/Gemfile" | $PACKAGING_DIR/update-requirements specfile - "$spec_file"
+	fi
+}
+
+update_npm_deps() {
+	local checkout="$1"
+	local spec_file="$2"
+
+	if [[ -f "${checkout}/package.json" ]] ; then
+		$PACKAGING_DIR/update-requirements npm "${checkout}/package.json" "$spec_file"
+	fi
+}
+
+update_foreman_spec() {
+	local checkout=$CLONE_DIR/foreman
+	local spec_file=$PACKAGING_DIR/packages/foreman/foreman/foreman.spec
+
+	ensure_checkout ghf:foreman $checkout develop
+	update_gem_deps $checkout $spec_file
+	update_npm_deps $checkout $spec_file
+	git add $spec_file
+}
+
+update_katello_spec() {
+	local checkout=$CLONE_DIR/katello
+	local spec_file=$PACKAGING_DIR/packages/katello/rubygem-katello/rubygem-katello.spec
+
+	ensure_checkout ghk:katello $checkout master
+	update_npm_deps $checkout $spec_file
+	git add $spec_file
+}
+
+update() {
+	local package=$1
+	local branch=${2:-rpm/develop}
+	local message="Update ${package} package dependencies"
+
+	git fetch origin
+	git checkout -b rpm/update-${package}-deps "origin/${branch}"
+	update_${package}_spec
+	git commit -m "$message"
+	git ph
+	git pr -b "${branch}" -m "$message"
+}
+
+if [[ "$1" != "foreman" ]] && [[ "$1" != "katello" ]] ; then
+	echo "Usage: $0 [foreman|katello]"
+	exit 1
+fi
+
+update $1
