@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+
+import os
+from glob import glob
+
+from ansible.inventory.manager import InventoryManager
+from ansible.parsing.dataloader import DataLoader
+from ansible.vars.manager import VariableManager
+
+
+def main():
+    data_loader = DataLoader()
+    manifest = InventoryManager(data_loader, 'package_manifest.yaml')
+    variable_manager = VariableManager(data_loader, manifest)
+
+    base_dirs = set()
+    package_dirs = set()
+
+    for package in manifest.hosts.values():
+        package_vars = variable_manager.get_vars(host=package)
+        try:
+            package_base_dir = os.path.join(package_vars['inventory_dir'], package_vars['package_base_dir'])
+        except KeyError:
+            continue
+
+        base_dirs.add(package_base_dir)
+
+        package_dir = os.path.join(package_vars['inventory_dir'], package_base_dir, package.name)
+
+        if not os.path.isdir(package_dir):
+            print('{} has no package dir: {} does not exist'.format(package.name, package_dir))
+        else:
+            package_dirs.add(package_dir)
+
+        spec_paths = glob(os.path.join(package_dir, '*.spec'))
+
+        if len(spec_paths) != 1:
+            print('Ambiguous spec for {}: {}'.format(package.name, spec_paths))
+        elif os.path.basename(spec_paths[0]) != (package.name + '.spec'):
+            print('{} != {}'.format(os.path.basename(spec_paths[0]), package.name + '.spec'))
+            os.rename(spec_paths[0], os.path.join(package_dir, package.name + '.spec'))
+
+    for base_dir in base_dirs:
+        for entry in os.listdir(base_dir):
+            path = os.path.join(base_dir, entry)
+            if os.path.isdir(path) and path not in package_dirs:
+                print('Found untracked package dir {}'.format(path))
+
+
+if __name__ == '__main__':
+    main()
