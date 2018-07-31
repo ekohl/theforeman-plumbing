@@ -108,11 +108,11 @@ elif [[ $ACTION == "sources" ]] ; then
 elif [[ $ACTION == "release" ]] ; then
 	release
 elif [[ $ACTION == "get-build" ]] ; then
-	for dir in $(changed $1) ; do
+	for dir in "$@" ; do
 		get_build $dir/*.spec
 	done
 elif [[ $ACTION == "get-tfm-build" ]] ; then
-	for dir in $(changed $1) ; do
+	for dir in "$@" ; do
 		get_tfm_build $dir/*.spec
 	done
 else
