@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+
+import argparse
+import configparser
+import re
+import subprocess
+from collections import defaultdict
+
+ALL_TAGS = {
+    'foreman-nightly-rhel7',
+    'foreman-nightly-nonscl-rhel7',
+    'foreman-plugins-nightly-nonscl-rhel7',
+    'foreman-plugins-nightly-rhel7',
+}
+
+
+def parse_props(tito_props_path):
+    parser = configparser.ConfigParser()
+    parser.read(tito_props_path)
+
+    result = defaultdict(set)
+
+    sections = [section for tag, section in parser.items() if 'whitelist' in section]
+
+    for section in sections:
+        for short_package_name in section['whitelist'].split():
+            if 'scl' in section and short_package_name.startswith('rubygem-'):
+                prefix = section['scl'] + '-'
+            else:
+                prefix = ''
+
+            result[prefix + short_package_name].add(section.name)
+
+    return result
+
+
+def get_build_tags(build):
+    output = subprocess.check_output(['koji', 'buildinfo', build], universal_newlines=True)
+    for line in output.split('\n'):
+        if line.startswith('Tags:'):
+            return set(line.split(': ', 1)[1].strip().split())
+
+    return set()
+
+
+def koji(args, dry_run):
+    command = ['koji'] + args
+    if dry_run:
+        print(' '.join(command))
+    else:
+        subprocess.check_call(command)
+
+
+def clean_builds(to_clean, dry_run):
+    for tag, packages in to_clean.items():
+        koji(['add-pkg', '--owner', 'kojiadm', tag] + list(packages.keys()), dry_run)
+        try:
+            koji(['untag-build', tag] + list(packages.values()), dry_run)
+        except subprocess.CalledProcessError:
+            print('Failed to untag in' + tag)
+        koji(['remove-pkg', tag] + list(packages.keys()), dry_run)
+
+
+def get_to_clean(builds):
+    all_build_tags = {build: get_build_tags(build) for build in builds}
+
+    package_mapping = parse_props('rel-eng/tito.props')
+
+    pattern = re.compile('^(?P<package>.+?)-[0-9].*$')
+
+    to_clean = defaultdict(dict)
+
+    for build, build_tags in all_build_tags.items():
+        package = pattern.match(build).group('package')
+        tags = package_mapping[package]
+        if tags:
+            for tag in (build_tags & ALL_TAGS) ^ tags:
+                to_clean[tag][package] = build
+        else:
+            print('No tags found for ' + package + ' in tito.props')
+
+    return to_clean
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('build', nargs='+')
+
+    args = parser.parse_args()
+
+    to_clean = get_to_clean(args.build)
+    clean_builds(to_clean, args.dry_run)
+
+
+if __name__ == '__main__':
+    main()
