@@ -56,7 +56,7 @@ update_katello_spec() {
 
 	ensure_checkout ghk:katello $checkout master
 	update_npm_deps $checkout $spec_file
-	obal bump-release katello -e 'changelog="Update NPM dependencies"'
+	obal bump-release rubygem-katello -e 'changelog="Update NPM dependencies"'
 	git add $spec_file
 }
 
