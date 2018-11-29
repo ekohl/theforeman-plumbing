@@ -1,4 +1,4 @@
-#!/bin/bash -xe
+#!/bin/bash -e
 
 BASE_DIR=$HOME/dev
 CLONE_DIR=$BASE_DIR/packaging-deps
@@ -41,36 +41,43 @@ update_npm_deps() {
 
 update_foreman_spec() {
 	local checkout=$CLONE_DIR/foreman
-	local spec_file=$PACKAGING_DIR/packages/foreman/foreman/foreman.spec
+	local git_remote="ghf:foreman"
+	local package="foreman"
+	local spec_file=$PACKAGING_DIR/packages/foreman/${package}/${package}.spec
 
-	ensure_checkout ghf:foreman $checkout develop
+	ensure_checkout $git_remote $checkout develop
 	update_gem_deps $checkout $spec_file
 	update_npm_deps $checkout $spec_file
-	obal bump-release foreman -e 'changelog="Update Gem and NPM dependencies"'
+	obal bump-release $package --changelog="Update Gem and NPM dependencies"
 	git add $spec_file
 }
 
 update_katello_spec() {
 	local checkout=$CLONE_DIR/katello
-	local spec_file=$PACKAGING_DIR/packages/katello/rubygem-katello/rubygem-katello.spec
+	local git_remote="ghk:katello"
+	local package="rubygem-katello"
+	local spec_file=$PACKAGING_DIR/packages/katello/${package}/${package}.spec
 
-	ensure_checkout ghk:katello $checkout master
+	ensure_checkout $git_remote $checkout master
 	update_npm_deps $checkout $spec_file
-	obal bump-release rubygem-katello -e 'changelog="Update NPM dependencies"'
+	obal bump-release $package --changelog="Update NPM dependencies"
 	git add $spec_file
 }
 
 update() {
 	local package=$1
 	local branch=${2:-rpm/develop}
+	local remote="origin"
 	local message="Update ${package} package dependencies"
 
-	git fetch origin
-	git checkout -b rpm/update-${package}-deps "origin/${branch}"
-	update_${package}_spec
-	git commit -m "$message"
-	git ph
-	git pr -b "${branch}" -m "$message"
+	(
+		cd $PACKAGING_DIR
+		git fetch "$remote"
+		git checkout -b rpm/update-${package}-deps "${remote}/${branch}"
+		update_${package}_spec
+		git commit -m "$message"
+		git phr -b "${branch}" -m "$message"
+	)
 }
 
 if [[ "$1" != "foreman" ]] && [[ "$1" != "katello" ]] ; then
