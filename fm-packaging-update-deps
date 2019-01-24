@@ -40,43 +40,58 @@ update_npm_deps() {
 }
 
 update_foreman_spec() {
-	local checkout=$CLONE_DIR/foreman
+	local checkout="${CLONE_DIR}/foreman"
 	local git_remote="ghf:foreman"
 	local package="foreman"
-	local spec_file=$PACKAGING_DIR/packages/foreman/${package}/${package}.spec
+	local spec_file="${PACKAGING_DIR}/packages/foreman/${package}/${package}.spec"
+	local existing=${1:-0}
 
 	ensure_checkout $git_remote $checkout develop
 	update_gem_deps $checkout $spec_file
 	update_npm_deps $checkout $spec_file
-	obal bump-release $package --changelog="Update Gem and NPM dependencies"
+	if [[ $existing == 0 ]] ; then
+		obal bump-release $package --changelog="Update Gem and NPM dependencies"
+	fi
 	git add $spec_file
 }
 
 update_katello_spec() {
-	local checkout=$CLONE_DIR/katello
+	local checkout="${CLONE_DIR}/katello"
 	local git_remote="ghk:katello"
 	local package="rubygem-katello"
-	local spec_file=$PACKAGING_DIR/packages/katello/${package}/${package}.spec
+	local spec_file="${PACKAGING_DIR}/packages/katello/${package}/${package}.spec"
+	local existing=${1:-0}
 
 	ensure_checkout $git_remote $checkout master
 	update_npm_deps $checkout $spec_file
-	obal bump-release $package --changelog="Update NPM dependencies"
+	if [[ $existing == 0 ]] ; then
+		obal bump-release $package --changelog="Update NPM dependencies"
+	fi
 	git add $spec_file
 }
 
 update() {
 	local package=$1
 	local branch=${2:-rpm/develop}
+	local local_branch="rpm/update-${package}-deps"
 	local remote="origin"
 	local message="Update ${package} package dependencies"
 
 	(
 		cd $PACKAGING_DIR
 		git fetch "$remote"
-		git checkout -b rpm/update-${package}-deps "${remote}/${branch}"
-		update_${package}_spec
-		git commit -m "$message"
-		git phr -b "${branch}" -m "$message"
+		if git branch | grep -q "\b${local_branch}\b" ; then
+			git checkout "${local_branch}"
+			git rebase --autostash "${remote}/${branch}"
+			update_${package}_spec 1
+			git commit --amend -m "$message"
+			git push -f
+		else
+			git checkout -b "${local_branch}" "${remote}/${branch}"
+			update_${package}_spec
+			git commit -m "$message"
+			git phr -b "${branch}" -m "$message"
+		fi
 	)
 }
 
