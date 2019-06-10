@@ -13,7 +13,7 @@ fi
 
 
 for format in rpm ; do
-	for version in 1.18 1.19 1.20 nightly ; do
+	for version in 1.20 1.21 1.22 nightly ; do
 		if [[ $version == nightly ]] ; then
 			branch="${format}/develop"
 		else
