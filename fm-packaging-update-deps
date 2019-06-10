@@ -4,6 +4,11 @@ BASE_DIR=$HOME/dev
 CLONE_DIR=$BASE_DIR/packaging-deps
 PACKAGING_DIR=$BASE_DIR/foreman-packaging
 
+die() {
+	echo "$@"
+	exit 1
+}
+
 ensure_checkout() {
 	local repo=$1
 	local checkout=$2
@@ -49,6 +54,9 @@ update_foreman_spec() {
 	ensure_checkout $git_remote $checkout develop
 	update_gem_deps $checkout $spec_file
 	update_npm_deps $checkout $spec_file
+
+	git diff-index --quiet HEAD && die "No changes"
+
 	if [[ $existing == 0 ]] ; then
 		obal bump-release $package --changelog="Update Gem and NPM dependencies"
 	fi
@@ -64,6 +72,9 @@ update_katello_spec() {
 
 	ensure_checkout $git_remote $checkout master
 	update_npm_deps $checkout $spec_file
+
+	git diff-index --quiet HEAD && die "No changes"
+
 	if [[ $existing == 0 ]] ; then
 		obal bump-release $package --changelog="Update NPM dependencies"
 	fi
