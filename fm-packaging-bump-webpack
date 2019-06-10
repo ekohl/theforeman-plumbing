@@ -3,12 +3,16 @@
 BASE_DIR=$HOME/dev
 PACKAGING_DIR=$BASE_DIR/foreman-packaging
 
-if [[ "$1" != "remote_execution" ]] && [[ "$1" != "ansible" ]] ; then
-	echo "Usage: $0 [remote_execution|ansible]"
+if [[ "$1" != "remote_execution" ]] && [[ "$1" != "ansible" ]] && [[ "$1" != "tasks" ]]; then
+	echo "Usage: $0 [remote_execution|ansible|tasks]"
 	exit 1
 fi
 
-PACKAGE="rubygem-foreman_$1"
+if [[ "$1" == "tasks" ]] ; then
+	PACKAGE="rubygem-foreman-$1"
+else
+	PACKAGE="rubygem-foreman_$1"
+fi
 BRANCH=rpm/${2:-develop}
 LOCAL_BRANCH="${BRANCH}-bump-${PACKAGE}"
 REMOTE="origin"
