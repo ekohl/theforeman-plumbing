@@ -97,10 +97,10 @@ update_katello_spec() {
 }
 
 update() {
-	local package=$1
-	local branch=${2:-rpm/develop}
+	local package="$1"
+	local branch="${2:-rpm/develop}"
+	local remote="${3:-origin}"
 	local local_branch="rpm/update-${package}-deps"
-	local remote="origin"
 	local message="Update ${package} package dependencies"
 
 	(
@@ -126,4 +126,4 @@ if [[ "$1" != "foreman" ]] && [[ "$1" != "katello" ]] ; then
 	exit 1
 fi
 
-update $1
+update "$@"
