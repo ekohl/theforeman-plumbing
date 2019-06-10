@@ -14,7 +14,7 @@ pick() {
 	COMMIT=$2
 
 	if [[ -z $VERSION ]] || [[ -z $COMMIT ]]; then
-		echo "Usage: $0 cherry-pick VERSION COMMIT"
+		echo "Usage: $0 pick VERSION COMMIT"
 		exit 1
 	fi
 
@@ -22,7 +22,7 @@ pick() {
 
 	git checkout rpm/$VERSION
 	git pull
-	git cherry-pick $COMMIT
+	git cherry-pick -x $COMMIT
 }
 
 changed() {
