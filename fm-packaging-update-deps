@@ -35,6 +35,19 @@ update_gem_deps() {
 	fi
 }
 
+update_gemspec_deps() {
+	local checkout="$1"
+	local spec_file="$2"
+	local gem_name="$3"
+
+	local template="$(awk '/^# template: / { print $3 }' "$spec_file")"
+	if [[ -n $template ]] ; then
+		rm -f ${checkout}/${gem_name}-*.gem
+		gem build "${checkout}/${gem_name}.gemspec"
+		gem2rpm -t "$PACKAGING_DIR/gem2rpm/$template.spec.erb" ${gem_name}-*.gem | $PACKAGING_DIR/update-requirements specfile - "$spec_file"
+	fi
+}
+
 update_npm_deps() {
 	local checkout="$1"
 	local spec_file="$2"
@@ -66,17 +79,19 @@ update_foreman_spec() {
 update_katello_spec() {
 	local checkout="${CLONE_DIR}/katello"
 	local git_remote="ghk:katello"
-	local package="rubygem-katello"
+	local gem_name="katello"
+	local package="rubygem-${gem_name}"
 	local spec_file="${PACKAGING_DIR}/packages/katello/${package}/${package}.spec"
 	local existing=${1:-0}
 
 	ensure_checkout $git_remote $checkout master
+	update_gemspec_deps $checkout $spec_file $gem_name
 	update_npm_deps $checkout $spec_file
 
 	git diff-index --quiet HEAD && die "No changes"
 
 	if [[ $existing == 0 ]] ; then
-		obal bump-release $package --changelog="Update NPM dependencies"
+		obal bump-release $package --changelog="Update Gem and NPM dependencies"
 	fi
 	git add $spec_file
 }
