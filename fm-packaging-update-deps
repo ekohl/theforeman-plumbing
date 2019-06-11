@@ -42,9 +42,10 @@ update_gemspec_deps() {
 
 	local template="$(awk '/^# template: / { print $3 }' "$spec_file")"
 	if [[ -n $template ]] ; then
-		rm -f ${checkout}/${gem_name}-*.gem
-		gem build "${checkout}/${gem_name}.gemspec"
-		gem2rpm -t "$PACKAGING_DIR/gem2rpm/$template.spec.erb" ${gem_name}-*.gem | $PACKAGING_DIR/update-requirements specfile - "$spec_file"
+		gem="$(mktemp)"
+		( cd "$checkout" && gem build "${gem_name}.gemspec" -o "$gem" )
+		gem2rpm -t "$PACKAGING_DIR/gem2rpm/$template.spec.erb" "$gem" | $PACKAGING_DIR/update-requirements specfile - "$spec_file"
+		rm -f "$gem"
 	fi
 }
 
