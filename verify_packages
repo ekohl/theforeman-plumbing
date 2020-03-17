@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+
+import argparse
+import asyncio
+from asyncio import Queue
+import configparser
+import logging
+from collections import defaultdict, namedtuple
+from pathlib import Path
+from subprocess import CalledProcessError
+from typing import Dict, List, Optional, Set, Tuple
+
+from ansible.inventory.manager import InventoryManager
+from ansible.parsing.dataloader import DataLoader
+from ansible.vars.manager import VariableManager
+import koji
+
+# Tito loader
+
+TitoConfig = namedtuple('TitoConfig', ['foremandist', 'package_map'])
+
+
+def _parse_props(tito_props_path: str) -> configparser.ConfigParser:
+    parser = configparser.ConfigParser()
+    parser.read(tito_props_path)
+    return parser
+
+
+def _get_package_whitelist(tito_props: configparser.ConfigParser,
+                           dist: Optional[str] = None) -> Dict[str, Set[Tuple]]:
+    result: Dict[str, Set[Tuple]] = defaultdict(set)
+
+    for tag, section in tito_props.items():
+        if 'whitelist' in section and (not dist or section['disttag'] == f'.{dist}'):
+            for short_package_name in section['whitelist'].split():
+                result[short_package_name].add((tag, section['disttag'], section.get('scl')))
+
+    return result
+
+
+async def load_tito(repository: Path, dist: Optional[str] = None) -> TitoConfig:
+    """
+    Load the tito configuration
+    """
+    tito_file = repository / 'rel-eng' / 'tito.props'
+    tito_props = _parse_props(tito_file.as_posix())
+    foremandist = tito_props.get('buildconfig', 'tag_suffix')
+    package_map = _get_package_whitelist(tito_props, dist)
+
+    return TitoConfig(foremandist, package_map)
+
+
+# Package loader
+
+
+async def _get_packages_manifest(manifest_path: Path, queue: Queue) -> None:
+    data_loader = DataLoader()
+    manifest = InventoryManager(data_loader, manifest_path.as_posix())
+    variable_manager = VariableManager(data_loader, manifest)
+
+    for host in manifest.hosts.values():
+        package_vars = variable_manager.get_vars(host=host)
+        if 'package_base_dir' in package_vars:
+            package_dir = (Path(package_vars['inventory_dir']) / package_vars['package_base_dir'] /
+                           host.name)
+            try:
+                spec_file = next(package_dir.glob('*.spec'))
+            except StopIteration:
+                logging.warning('Could not determine spec file for %s', host.name)
+            else:
+                logging.debug('%s -> %s', host.name, spec_file)
+                await queue.put((host.name, spec_file))
+
+
+async def produce_spec_files(queue: Queue, repository: Path) -> None:
+    """
+    Loads the repository and produces spec files into the queue
+    """
+
+    manifest_path = repository / 'package_manifest.yaml'
+    await _get_packages_manifest(manifest_path, queue)
+
+
+# Versions processor
+
+async def _get_spec_nvr(spec_file: Path, dist: str, scl: Optional[str],
+                        foremandist: str) -> Optional[str]:
+    command = ['rpmspec', '--srpm', '-q', '--queryformat', '%{nvr}', spec_file.as_posix(),
+               '--define', f'dist {dist}', '--define', f'foremandist {foremandist}']
+    if scl:
+        command += ['--define', f'scl {scl}']
+
+    proc = await asyncio.create_subprocess_exec(*command,
+                                                stdout=asyncio.subprocess.PIPE,
+                                                stderr=asyncio.subprocess.DEVNULL)
+
+    try:
+        await proc.wait()
+    except asyncio.CancelledError:
+        proc.terminate()
+        raise
+
+    if proc.returncode != 0:
+        logging.error('Failed to get nvr from %s (dist: %s, scl: %s)', spec_file, dist, scl)
+        return None
+
+    if proc.stdout:
+        stdout = await proc.stdout.read()
+        return stdout.decode('ascii')
+
+    return None
+
+
+async def consume_spec_files(spec_files: Queue, versions: Queue, tito_config: TitoConfig) -> None:
+    """
+    Loads from the spec files queue and produces versions
+    """
+    while True:
+        package, spec_file = await spec_files.get()
+
+        try:
+            for tag, disttag, scl in tito_config.package_map[package]:
+                nvr = await _get_spec_nvr(spec_file, disttag, scl, tito_config.foremandist)
+                if nvr:
+                    logging.debug('%s -> %s %s', package, tag, nvr)
+                    await versions.put((package, tag, nvr))
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            break
+        except:  # pylint: disable=bare-except
+            logging.exception('Failed to process %s', package)
+
+        spec_files.task_done()
+
+
+# Koji verification
+
+def get_koji_session(name: str) -> koji.ClientSession:
+    options = koji.read_config(name)
+    for setting in ('topdir', 'cert', 'serverca'):
+        # expand paths here, so we don't have to worry about it later
+        options[setting] = Path(options[setting]).expanduser().as_posix()
+
+    return koji.ClientSession(options['server'], options)
+
+
+def get_koji_tags(session: koji.ClientSession, build: str) -> Optional[List[str]]:
+    try:
+        return [tag['name'] for tag in session.listTags(build)]
+    except koji.GenericError as exc:
+        if str(exc).startswith('invalid build'):
+            return None
+        logging.exception('Failed to get tags for build %s', build)
+
+
+async def consume_versions(versions: Queue, actions: Queue, session: koji.ClientSession) -> None:
+    """
+    Loads from the versions and prints them
+    """
+    loop = asyncio.get_running_loop()
+
+    while True:
+        package, tag, build = await versions.get()
+
+        if any(word in build for word in ['.develop.', '.master.', '.nightly.']):
+            versions.task_done()
+            continue
+
+        try:
+            logging.debug('Fetching build %s', build)
+            tags = await loop.run_in_executor(None, lambda: get_koji_tags(session, build))
+            if tags is None:
+                print(f'Build {build} does not exist')
+                print(f'  obal release {package}')
+                await actions.put(('release', package))
+            elif tag not in tags:
+                print(f'Build {build} is missing from {tag}')
+                print(f'  koji tag-build {tag} {build}')
+                await actions.put(('tag-build', tag, build))
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            break
+        except CalledProcessError as exc:
+            logging.error('Failed to get build info for %s: %s', build, exc.stderr)
+        except:  # pylint: disable=bare-except
+            logging.exception('Failed to process %s', build)
+
+        versions.task_done()
+
+
+async def process_actions(actions: Queue) -> None:
+    to_release = []
+    to_tag = defaultdict(list)
+
+    while True:
+        try:
+            action = actions.get_nowait()
+        except asyncio.QueueEmpty:
+            break
+        if action[0] == 'release':
+            to_release.append(action[1])
+        elif action[0] == 'tag-build':
+            to_tag[action[1]].append(action[2])
+        else:
+            print(f'Unknown action: {action}')
+        actions.task_done()
+
+    if to_release:
+        print(f'Bulk release:')
+        print(f'  obal release {" ".join(sorted(set(to_release)))}')
+    if to_tag:
+        print(f'Bulk tag:')
+        for tag, builds in to_tag.items():
+            print(f'  koji tag-build {tag} {" ".join(sorted(set(builds)))}')
+
+
+async def verify_packages(dist: Optional[str], rpmspec_workers: int, koji_workers: int) -> None:
+    repository = Path(__file__).parent
+    tito_config = await load_tito(repository, dist)
+
+    # Processing pipeline:
+    # manifest_loader -> spec_files -> versions -> actions
+
+    spec_files = Queue()
+    versions = Queue()
+    actions = Queue()
+    manifest_loader = asyncio.create_task(produce_spec_files(spec_files, repository))
+
+    workers = []
+    for _ in range(rpmspec_workers):
+        workers.append(asyncio.create_task(consume_spec_files(spec_files, versions, tito_config)))
+
+    koji_session = None
+    for i in range(koji_workers):
+        if i % 4 == 0:
+            koji_session = get_koji_session('koji')
+        workers.append(asyncio.create_task(consume_versions(versions, actions, koji_session)))
+
+    try:
+        await manifest_loader
+        await spec_files.join()
+        await versions.join()
+    except KeyboardInterrupt:
+        manifest_loader.cancel()
+    for worker in workers:
+        worker.cancel()
+    await asyncio.gather(*workers, return_exceptions=True)
+
+    action_processor = asyncio.create_task(process_actions(actions))
+    await actions.join()
+    await action_processor
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rpmspec', type=int, default=4)
+    parser.add_argument('--koji', type=int, default=4)
+    parser.add_argument('--dist')
+    parser.add_argument('--verbose', action='store_true')
+
+    args = parser.parse_args()
+
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=level)
+
+    asyncio.run(verify_packages(args.dist, args.rpmspec, args.koji))
+
+
+if __name__ == '__main__':
+    main()
