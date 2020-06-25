@@ -77,6 +77,24 @@ update_foreman_spec() {
 	git add $spec_file
 }
 
+update_foreman_proxy_spec() {
+	local checkout="${CLONE_DIR}/smart-proxy"
+	local git_remote="ghf:smart-proxy"
+	local package="foreman-proxy"
+	local spec_file="${PACKAGING_DIR}/packages/foreman/${package}/${package}.spec"
+	local existing=${1:-0}
+
+	ensure_checkout $git_remote $checkout develop
+	update_gem_deps $checkout $spec_file
+
+	git diff-index --quiet HEAD && die "No changes"
+
+	if [[ $existing == 0 ]] ; then
+		obal bump-release $package --changelog="Update Gem dependencies"
+	fi
+	git add $spec_file
+}
+
 update_katello_spec() {
 	local checkout="${CLONE_DIR}/katello"
 	local git_remote="ghk:katello"
@@ -110,20 +128,20 @@ update() {
 		if git branch | grep -q "\b${local_branch}\b" ; then
 			git checkout "${local_branch}"
 			git rebase --autostash "${remote}/${branch}"
-			update_${package}_spec 1
+			update_${package//-/_}_spec 1
 			git commit --amend -m "$message"
 			git push -f
 		else
 			git checkout -b "${local_branch}" "${remote}/${branch}"
-			update_${package}_spec
+			update_${package//-/_}_spec
 			git commit -m "$message"
 			git phr -b "${branch}" -m "$message"
 		fi
 	)
 }
 
-if [[ "$1" != "foreman" ]] && [[ "$1" != "katello" ]] ; then
-	echo "Usage: $0 [foreman|katello]"
+if [[ "$1" != "foreman" ]] && [[ "$1" != "foreman-proxy" ]] && [[ "$1" != "katello" ]] ; then
+	echo "Usage: $0 [foreman|foreman-proxy|katello]"
 	exit 1
 fi
 
