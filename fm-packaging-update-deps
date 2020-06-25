@@ -127,9 +127,9 @@ update() {
 		git fetch "$remote"
 		if git branch | grep -q "\b${local_branch}\b" ; then
 			git checkout "${local_branch}"
-			git rebase --autostash "${remote}/${branch}"
-			update_${package//-/_}_spec 1
-			git commit --amend -m "$message"
+			git reset --hard "${remote}/${branch}"
+			update_${package//-/_}_spec
+			git commit -m "$message"
 			git push -f
 		else
 			git checkout -b "${local_branch}" "${remote}/${branch}"
