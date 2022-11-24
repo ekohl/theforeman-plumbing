@@ -1,0 +1,205 @@
+#!/bin/bash
+
+FILTER="$1"
+
+set -e
+set -o pipefail
+
+CLONE_DIRECTORY="$HOME/dev"
+HAMMER_CLI_CHECKOUT="${CLONE_DIRECTORY}/hammer-cli"
+FOREMAN_PLUGIN_TEMPLATE="${CLONE_DIRECTORY}/foreman_plugin_template"
+FOREMAN_WORKTREE="$HOME/dev/foreman-plugins"
+FOREMAN_CHECKOUT="${CLONE_DIRECTORY}/foreman"
+FOREMAN_BUNDLER_FILE="bundler.d/i18n.local.rb"
+TRANSLATION_BRANCH="update-translations"
+
+eval "$(rbenv init - bash)"
+unset GEM_HOME
+
+JSON="$(curl -s https://ekohl.github.io/foreman-plugin-overview/index.json)"
+
+ensure_clean() {
+	if [[ -n "$(git status --porcelain)" ]] ; then
+		echo "$PWD working directory is dirty"
+		exit 1
+	fi
+}
+
+checkout_default_branch() {
+	DEFAULT_BRANCH="$(basename $(git symbolic-ref refs/remotes/upstream/HEAD))"
+	git checkout "$DEFAULT_BRANCH"
+}
+
+update_checkout() {
+	if [[ -z $NO_UPDATE ]] ; then
+		git pull
+	fi
+}
+
+bundle_install() {
+	if [[ -f Gemfile ]] && [[ -z $NO_BUNDLE ]] ; then
+		rm -f Gemfile.lock
+		bundle install
+	fi
+}
+
+ensure_translation_config() {
+	if [[ ! -f .tx/config ]] ; then
+		echo "${PWD}: Missing translation config"
+		exit 1
+	fi
+
+	local domain="$(ruby -rrubygems -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).name')"
+
+	mkdir -p .tx
+	cat > .tx/config <<-EOF
+	[main]
+	host = https://www.transifex.com
+
+	[foreman.${domain}]
+	file_filter = locale/<lang>/${domain}.edit.po
+	source_file = locale/${domain}.pot
+	source_lang = en
+	type = PO
+	EOF
+
+	# TODO: also create a lib/${domain}/i18n.rb
+
+	mkdir -p locale/en
+	touch "locale/en/${domain}.po"
+	cp "${HAMMER_CLI_CHECKOUT}/locale/Makefile.generic" locale/Makefile
+	cp "${HAMMER_CLI_CHECKOUT}/locale/README.md" locale/README.md
+	make -C locale extract-strings
+
+	git add .tx/config locale
+	git commit -m 'Set up translation infrastructure'
+}
+
+sync_hammer_plugin_makefile() {
+	if [[ ! -d "${HAMMER_CLI_CHECKOUT}" ]] ; then
+		git clone -o upstream https://github.com/theforeman/hammer-ci "${HAMMER_CLI_CHECKOUT}"
+	fi
+
+	cp "${HAMMER_CLI_CHECKOUT}/locale/Makefile.generic" locale/Makefile
+	if [[ -n "$(git status --porcelain locale/Makefile)" ]] ; then
+		git commit -m 'Sync locale Makefile from Hammer CLI' locale/Makefile
+	fi
+}
+
+sync_foreman_plugin_makefile() {
+	cp "${FOREMAN_PLUGIN_TEMPLATE}/locale/Makefile" locale/Makefile
+	if [[ -n "$(git status --porcelain locale/Makefile)" ]] ; then
+		git commit -m 'Sync locale Makefile from plugin template' locale/Makefile
+	fi
+}
+
+checkout_translation_branch() {
+	git branch | grep -q "$TRANSLATION_BRANCH" && git branch -D "$TRANSLATION_BRANCH"
+	git checkout -b "$TRANSLATION_BRANCH"
+}
+
+update_hammer_plugins() {
+	# CLI plugins run in their own checkout
+	for url in $(echo $JSON | jq -r '.cli[][] | select(.translations) | .url') ; do
+		NAME="$(basename "$url")"
+		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
+
+		if [[ ! -d "${DIRECTORY}" ]] ; then
+			git clone -o upstream "$url" "$DIRECTORY"
+		fi
+
+		cd "${DIRECTORY}"
+
+		ensure_clean
+		checkout_default_branch
+		update_checkout
+
+		checkout_translation_branch
+		bundle_install
+		ensure_translation_config
+
+		sync_hammer_plugin_makefile
+
+		make -C locale tx-pull
+	done
+}
+
+update_foreman_plugins() {
+	if [[ ! -d "${FOREMAN_CHECKOUT}" ]] ; then
+		git clone -o upstream https://github.com/theforeman/foreman "$FOREMAN_CHECKOUT"
+	fi
+	cd "$FOREMAN_CHECKOUT"
+	git fetch upstream
+
+	local plugin_urls=$(echo $JSON | jq -r '.foreman[][] | select(.translations) | .url')
+	if [[ -n $FILTER ]] ; then
+		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
+	fi
+
+	# Foreman plugins run from Foreman
+	for url in $plugin_urls ; do
+		NAME="$(basename "$url")"
+		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
+
+		if [[ ! -d "${DIRECTORY}" ]] ; then
+			git clone -o upstream "$url" "$DIRECTORY"
+		fi
+
+		cd "${DIRECTORY}"
+
+		if [[ ! -f .tx/config ]] ; then
+			echo "[${NAME}] Missing translation config"
+			exit 1
+		fi
+
+		if $(git branch | grep -q "$TRANSLATION_BRANCH") ; then
+			echo "[${NAME}] Updating $TRANSLATION_BRANCH"
+			git checkout "$TRANSLATION_BRANCH"
+			git fetch upstream
+			git rebase --autostash upstream/HEAD
+		else
+			echo "[${NAME}] Creating $TRANSLATION_BRANCH"
+			ensure_clean
+			checkout_default_branch
+			update_checkout
+			checkout_translation_branch
+		fi
+
+		#sync_foreman_plugin_makefile
+
+		make -C locale tx-pull
+
+		WORKTREE="${FOREMAN_WORKTREE}/${NAME}"
+		if [[ -d "${WORKTREE}" ]] ; then
+			cd $WORKTREE
+			ensure_clean
+			git reset --hard upstream/HEAD
+		else
+			cd "$FOREMAN_CHECKOUT"
+			git worktree add --track -b "i18n-${NAME}" "$WORKTREE" upstream/HEAD
+			echo "gem '${NAME}', path: '${DIRECTORY}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
+			cp "${WORKTREE}/config/settings.yaml.test" "${WORKTREE}/config/settings.yaml"
+			cat > "${WORKTREE}/config/database.yml" <<-EOF
+			development:
+			  adapter: postgresql
+			  database: foreman-$NAME
+			  encoding: utf8
+			EOF
+		fi
+
+		cd "$WORKTREE"
+		bundle_install
+		bundle exec rake db:create db:migrate
+		bundle exec rake db:seed
+
+		bundle exec rake plugin:gettext[${NAME/-/_}]
+
+		cd "$DIRECTORY"
+		if [[ -n "$(git status --porcelain)" ]] ; then
+			make -C locale mo-files
+		fi
+	done
+}
+
+#update_hammer_plugins
+update_foreman_plugins
