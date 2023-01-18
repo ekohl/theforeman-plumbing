@@ -26,7 +26,7 @@ ensure_clean() {
 }
 
 checkout_default_branch() {
-	DEFAULT_BRANCH="$(basename $(git symbolic-ref refs/remotes/upstream/HEAD))"
+	DEFAULT_BRANCH="$(basename "$(git symbolic-ref refs/remotes/upstream/HEAD)")"
 	git checkout "$DEFAULT_BRANCH"
 }
 
@@ -49,7 +49,8 @@ ensure_translation_config() {
 		exit 1
 	fi
 
-	local domain="$(ruby -rrubygems -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).name')"
+	local domain
+	domain="$(ruby -rrubygems -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).name')"
 
 	mkdir -p .tx
 	cat > .tx/config <<-EOF
@@ -100,7 +101,7 @@ checkout_translation_branch() {
 
 update_hammer_plugins() {
 	# CLI plugins run in their own checkout
-	for url in $(echo $JSON | jq -r '.cli[][] | select(.translations) | .url') ; do
+	for url in $(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url') ; do
 		NAME="$(basename "$url")"
 		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
 
@@ -131,7 +132,8 @@ update_foreman_plugins() {
 	cd "$FOREMAN_CHECKOUT"
 	git fetch upstream
 
-	local plugin_urls=$(echo $JSON | jq -r '.foreman[][] | select(.translations) | .url')
+	local plugin_urls
+	plugin_urls=$(echo "$JSON" | jq -r '.foreman[][] | select(.translations) | .url')
 	if [[ -n $FILTER ]] ; then
 		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
 	fi
@@ -152,7 +154,7 @@ update_foreman_plugins() {
 			exit 1
 		fi
 
-		if $(git branch | grep -q "$TRANSLATION_BRANCH") ; then
+		if git branch | grep -q "$TRANSLATION_BRANCH" ; then
 			echo "[${NAME}] Updating $TRANSLATION_BRANCH"
 			git checkout "$TRANSLATION_BRANCH"
 			git fetch upstream
@@ -171,7 +173,7 @@ update_foreman_plugins() {
 
 		WORKTREE="${FOREMAN_WORKTREE}/${NAME}"
 		if [[ -d "${WORKTREE}" ]] ; then
-			cd $WORKTREE
+			cd "${WORKTREE}"
 			ensure_clean
 			git reset --hard upstream/HEAD
 		else
@@ -198,7 +200,7 @@ update_foreman_plugins() {
 		bundle exec rake db:create db:migrate
 		bundle exec rake db:seed
 
-		bundle exec rake plugin:gettext[${NAME/-/_}]
+		bundle exec rake "plugin:gettext[${NAME/-/_}]"
 
 		cd "$DIRECTORY"
 		if [[ -n "$(git status --porcelain)" ]] ; then
