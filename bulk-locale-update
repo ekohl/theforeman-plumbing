@@ -16,7 +16,7 @@ TRANSLATION_BRANCH="update-translations"
 eval "$(rbenv init - bash)"
 unset GEM_HOME
 
-JSON="$(curl -s https://ekohl.github.io/foreman-plugin-overview/index.json)"
+JSON="$(curl -s https://theforeman.github.io/foreman-plugin-overview/index.json)"
 
 ensure_clean() {
 	if [[ -n "$(git status --porcelain)" ]] ; then
