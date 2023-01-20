@@ -200,6 +200,7 @@ update_foreman_plugins() {
 		bundle exec rake db:create db:migrate
 		bundle exec rake db:seed
 
+		# Hack around foreman-tasks not following conventions
 		bundle exec rake "plugin:gettext[${NAME/-/_}]"
 
 		cd "$DIRECTORY"
