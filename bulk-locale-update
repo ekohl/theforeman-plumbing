@@ -210,5 +210,15 @@ update_foreman_plugins() {
 	done
 }
 
+if ! command -v tx > /dev/null ; then
+	echo "tx not present - please install transifex-client"
+	exit 1
+fi
+
+if ! command -v msgfmt > /dev/null ; then
+	echo "msgfmt not present - please install gettext"
+	exit 1
+fi
+
 #update_hammer_plugins
 update_foreman_plugins
