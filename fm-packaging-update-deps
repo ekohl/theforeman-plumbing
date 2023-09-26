@@ -16,14 +16,18 @@ ensure_checkout() {
 
 	(
 		if [[ -d $checkout ]] ; then
-			cd $checkout
-			git checkout $branch
+			cd "$checkout"
+			git checkout "$branch"
 			git reset --hard
 			git pull
 		else
-			git clone $repo $checkout -o upstream -b $branch
+			git clone "$repo" "$checkout" -o upstream -b "$branch"
 		fi
 	)
+}
+
+update_requirements() {
+	"${PACKAGING_DIR}/update-requirements" "$@"
 }
 
 update_gem_deps() {
@@ -31,7 +35,7 @@ update_gem_deps() {
 	local spec_file="$2"
 
 	if [[ -f "${checkout}/Gemfile" ]] ; then
-		$PACKAGING_DIR/get-gemfile-deps "${checkout}/Gemfile" | $PACKAGING_DIR/update-requirements specfile - "$spec_file"
+		"$PACKAGING_DIR/get-gemfile-deps" "${checkout}/Gemfile" | update_requirements specfile - "$spec_file"
 	fi
 }
 
@@ -40,11 +44,12 @@ update_gemspec_deps() {
 	local spec_file="$2"
 	local gem_name="$3"
 
-	local template="$(awk '/^# template: / { print $3 }' "$spec_file")"
+	local template
+	template="$(awk '/^# template: / { print $3 }' "$spec_file")"
 	if [[ -n $template ]] ; then
 		gem="$(mktemp)"
 		( cd "$checkout" && gem build "${gem_name}.gemspec" -o "$gem" )
-		gem2rpm -t "$PACKAGING_DIR/gem2rpm/$template.spec.erb" "$gem" | $PACKAGING_DIR/update-requirements specfile - "$spec_file"
+		gem2rpm -t "$PACKAGING_DIR/gem2rpm/$template.spec.erb" "$gem" | update_requirements specfile - "$spec_file"
 		rm -f "$gem"
 	fi
 }
@@ -54,7 +59,7 @@ update_npm_deps() {
 	local spec_file="$2"
 
 	if [[ -f "${checkout}/package.json" ]] ; then
-		$PACKAGING_DIR/update-requirements npm "${checkout}/package.json" "$spec_file"
+		"$PACKAGING_DIR/update-requirements" npm "${checkout}/package.json" "$spec_file"
 	fi
 }
 
@@ -65,16 +70,16 @@ update_foreman_spec() {
 	local spec_file="${PACKAGING_DIR}/packages/foreman/${package}/${package}.spec"
 	local existing=${1:-0}
 
-	ensure_checkout $git_remote $checkout develop
-	update_gem_deps $checkout $spec_file
-	update_npm_deps $checkout $spec_file
+	ensure_checkout $git_remote "$checkout" develop
+	update_gem_deps "$checkout" "$spec_file"
+	update_npm_deps "$checkout" "$spec_file"
 
 	git diff-index --quiet HEAD && die "No changes"
 
 	if [[ $existing == 0 ]] ; then
 		obal bump-release $package --changelog="Update Gem and NPM dependencies"
 	fi
-	git add $spec_file
+	git add "$spec_file"
 }
 
 update_foreman_proxy_spec() {
@@ -84,15 +89,15 @@ update_foreman_proxy_spec() {
 	local spec_file="${PACKAGING_DIR}/packages/foreman/${package}/${package}.spec"
 	local existing=${1:-0}
 
-	ensure_checkout $git_remote $checkout develop
-	update_gem_deps $checkout $spec_file
+	ensure_checkout $git_remote "$checkout" develop
+	update_gem_deps "$checkout" "$spec_file"
 
 	git diff-index --quiet HEAD && die "No changes"
 
 	if [[ $existing == 0 ]] ; then
 		obal bump-release $package --changelog="Update Gem dependencies"
 	fi
-	git add $spec_file
+	git add "$spec_file"
 }
 
 update_katello_spec() {
@@ -103,16 +108,16 @@ update_katello_spec() {
 	local spec_file="${PACKAGING_DIR}/packages/katello/${package}/${package}.spec"
 	local existing=${1:-0}
 
-	ensure_checkout $git_remote $checkout master
-	update_gemspec_deps $checkout $spec_file $gem_name
-	update_npm_deps $checkout $spec_file
+	ensure_checkout $git_remote "$checkout" master
+	update_gemspec_deps "$checkout" "$spec_file" "$gem_name"
+	update_npm_deps "$checkout" "$spec_file"
 
 	git diff-index --quiet HEAD && die "No changes"
 
 	if [[ $existing == 0 ]] ; then
 		obal bump-release $package --changelog="Update Gem and NPM dependencies"
 	fi
-	git add $spec_file
+	git add "$spec_file"
 }
 
 update() {
@@ -123,17 +128,17 @@ update() {
 	local message="Update ${package} package dependencies"
 
 	(
-		cd $PACKAGING_DIR
+		cd "$PACKAGING_DIR"
 		git fetch "$remote"
 		if git branch | grep -q "\b${local_branch}\b" ; then
 			git checkout "${local_branch}"
 			git reset --hard "${remote}/${branch}"
-			update_${package//-/_}_spec
+			"update_${package//-/_}_spec"
 			git commit -m "$message"
 			git push -f
 		else
 			git checkout -b "${local_branch}" "${remote}/${branch}"
-			update_${package//-/_}_spec
+			"update_${package//-/_}_spec"
 			git commit -m "$message"
 			git phr -b "${branch}" -m "$message"
 		fi
