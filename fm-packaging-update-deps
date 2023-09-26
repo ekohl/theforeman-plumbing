@@ -26,16 +26,12 @@ ensure_checkout() {
 	)
 }
 
-update_requirements() {
-	"${PACKAGING_DIR}/update-requirements" "$@"
-}
-
 update_gem_deps() {
 	local checkout="$1"
 	local spec_file="$2"
 
 	if [[ -f "${checkout}/Gemfile" ]] ; then
-		"$PACKAGING_DIR/get-gemfile-deps" "${checkout}/Gemfile" | update_requirements specfile - "$spec_file"
+		./get-gemfile-deps "${checkout}/Gemfile" | ./update-requirements specfile - "$spec_file"
 	fi
 }
 
@@ -49,7 +45,7 @@ update_gemspec_deps() {
 	if [[ -n $template ]] ; then
 		gem="$(mktemp)"
 		( cd "$checkout" && gem build "${gem_name}.gemspec" -o "$gem" )
-		gem2rpm -t "$PACKAGING_DIR/gem2rpm/$template.spec.erb" "$gem" | update_requirements specfile - "$spec_file"
+		gem2rpm -t "gem2rpm/$template.spec.erb" "$gem" | ./update-requirements specfile - "$spec_file"
 		rm -f "$gem"
 	fi
 }
@@ -59,7 +55,7 @@ update_npm_deps() {
 	local spec_file="$2"
 
 	if [[ -f "${checkout}/package.json" ]] ; then
-		"$PACKAGING_DIR/update-requirements" npm "${checkout}/package.json" "$spec_file"
+		./update-requirements npm "${checkout}/package.json" "$spec_file"
 	fi
 }
 
@@ -67,7 +63,7 @@ update_foreman_spec() {
 	local checkout="${CLONE_DIR}/foreman"
 	local git_remote="ghf:foreman"
 	local package="foreman"
-	local spec_file="${PACKAGING_DIR}/packages/foreman/${package}/${package}.spec"
+	local spec_file="packages/foreman/${package}/${package}.spec"
 	local existing=${1:-0}
 
 	ensure_checkout $git_remote "$checkout" develop
@@ -86,7 +82,7 @@ update_foreman_proxy_spec() {
 	local checkout="${CLONE_DIR}/smart-proxy"
 	local git_remote="ghf:smart-proxy"
 	local package="foreman-proxy"
-	local spec_file="${PACKAGING_DIR}/packages/foreman/${package}/${package}.spec"
+	local spec_file="packages/foreman/${package}/${package}.spec"
 	local existing=${1:-0}
 
 	ensure_checkout $git_remote "$checkout" develop
@@ -105,7 +101,7 @@ update_katello_spec() {
 	local git_remote="ghk:katello"
 	local gem_name="katello"
 	local package="rubygem-${gem_name}"
-	local spec_file="${PACKAGING_DIR}/packages/katello/${package}/${package}.spec"
+	local spec_file="packages/katello/${package}/${package}.spec"
 	local existing=${1:-0}
 
 	ensure_checkout $git_remote "$checkout" master
@@ -128,7 +124,7 @@ update() {
 	local message="Update ${package} package dependencies"
 
 	(
-		cd "$PACKAGING_DIR"
+		cd "${PACKAGING_DIR}/${branch/\//-}"
 		git fetch "$remote"
 		if git branch | grep -q "\b${local_branch}\b" ; then
 			git checkout "${local_branch}"
