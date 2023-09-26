@@ -119,7 +119,7 @@ update_katello_spec() {
 update() {
 	local package="$1"
 	local branch="${2:-rpm/develop}"
-	local remote="${3:-origin}"
+	local remote="${3:-upstream}"
 	local local_branch="rpm/update-${package}-deps"
 	local message="Update ${package} package dependencies"
 
