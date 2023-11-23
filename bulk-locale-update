@@ -184,8 +184,7 @@ update_foreman_plugins() {
 		bundle exec rake db:create db:migrate
 		bundle exec rake db:seed
 
-		# Hack around foreman-tasks not following conventions
-		bundle exec rake "plugin:gettext[${NAME/-/_}]"
+		bundle exec rake "plugin:gettext[${NAME}]" "plugin:po_to_json[${NAME}]"
 
 		cd "$DIRECTORY"
 		if [[ -n "$(git status --porcelain)" ]] ; then
