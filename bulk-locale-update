@@ -148,7 +148,9 @@ update_foreman_plugins() {
 			checkout_translation_branch
 		fi
 
-		#sync_foreman_plugin_makefile
+		if [[ $NAME != katello ]] ; then
+			sync_foreman_plugin_makefile
+		fi
 
 		make -C locale tx-pull
 
