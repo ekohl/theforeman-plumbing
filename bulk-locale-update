@@ -64,8 +64,14 @@ checkout_translation_branch() {
 }
 
 update_hammer_plugins() {
+	local plugin_urls
+	plugin_urls=$(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url')
+	if [[ -n $FILTER ]] ; then
+		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
+	fi
+
 	# CLI plugins run in their own checkout
-	for url in $(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url') ; do
+	for url in $plugin_urls ; do
 		NAME="$(basename "$url")"
 		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
 
