@@ -148,7 +148,7 @@ update_foreman_plugins() {
 			checkout_translation_branch
 		fi
 
-		if [[ $NAME != katello ]] ; then
+		if [[ $NAME != katello ]] && [[ $NAME != foreman-tasks ]] ; then
 			sync_foreman_plugin_makefile
 		fi
 
