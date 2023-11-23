@@ -177,8 +177,8 @@ update_foreman_plugins() {
 }
 
 if ! command -v tx > /dev/null ; then
-	echo "tx not present - please install transifex-client"
-	exit 1
+	echo "tx not present - downloading"
+	curl -L https://github.com/transifex/cli/releases/latest/download/tx-linux-amd64.tar.gz | tar zxf - -C ~/bin tx
 fi
 
 if ! command -v msgfmt > /dev/null ; then
