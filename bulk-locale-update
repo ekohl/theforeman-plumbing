@@ -175,6 +175,7 @@ update_foreman_plugins() {
 		fi
 
 		cd "$WORKTREE"
+		rbenv local 2.7.6
 		bundle_install
 		bundle exec rake db:create db:migrate
 		bundle exec rake db:seed
