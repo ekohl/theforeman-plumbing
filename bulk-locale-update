@@ -13,9 +13,6 @@ FOREMAN_CHECKOUT="${CLONE_DIRECTORY}/foreman"
 FOREMAN_BUNDLER_FILE="bundler.d/i18n.local.rb"
 TRANSLATION_BRANCH="update-translations"
 
-eval "$(rbenv init - bash)"
-unset GEM_HOME
-
 JSON="$(curl -s https://theforeman.github.io/foreman-plugin-overview/index.json)"
 
 ensure_clean() {
@@ -92,6 +89,9 @@ update_hammer_plugins() {
 }
 
 update_foreman_plugins() {
+	eval "$(rbenv init - bash)"
+	unset GEM_HOME
+
 	if [[ ! -d "${FOREMAN_CHECKOUT}" ]] ; then
 		git clone -o upstream https://github.com/theforeman/foreman "$FOREMAN_CHECKOUT"
 	fi
