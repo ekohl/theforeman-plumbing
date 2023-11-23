@@ -43,39 +43,6 @@ bundle_install() {
 	fi
 }
 
-ensure_translation_config() {
-	if [[ ! -f .tx/config ]] ; then
-		echo "${PWD}: Missing translation config"
-		exit 1
-	fi
-
-	local domain
-	domain="$(ruby -rrubygems -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).name')"
-
-	mkdir -p .tx
-	cat > .tx/config <<-EOF
-	[main]
-	host = https://www.transifex.com
-
-	[foreman.${domain}]
-	file_filter = locale/<lang>/${domain}.edit.po
-	source_file = locale/${domain}.pot
-	source_lang = en
-	type = PO
-	EOF
-
-	# TODO: also create a lib/${domain}/i18n.rb
-
-	mkdir -p locale/en
-	touch "locale/en/${domain}.po"
-	cp "${HAMMER_CLI_CHECKOUT}/locale/Makefile.generic" locale/Makefile
-	cp "${HAMMER_CLI_CHECKOUT}/locale/README.md" locale/README.md
-	make -C locale extract-strings
-
-	git add .tx/config locale
-	git commit -m 'Set up translation infrastructure'
-}
-
 sync_hammer_plugin_makefile() {
 	if [[ ! -d "${HAMMER_CLI_CHECKOUT}" ]] ; then
 		git clone -o upstream https://github.com/theforeman/hammer-ci "${HAMMER_CLI_CHECKOUT}"
@@ -117,7 +84,6 @@ update_hammer_plugins() {
 
 		checkout_translation_branch
 		bundle_install
-		ensure_translation_config
 
 		sync_hammer_plugin_makefile
 
