@@ -188,7 +188,12 @@ update_foreman_plugins() {
 
 		cd "$DIRECTORY"
 		if [[ -n "$(git status --porcelain)" ]] ; then
-			make -C locale mo-files
+			if [[ $NAME == katello ]] ; then
+				echo "[$NAME] skipping commit"
+				# make -C locale commit-translation-files
+			else
+				make -C locale mo-files
+			fi
 		fi
 
 		UPDATED+=("$DIRECTORY")
