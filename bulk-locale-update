@@ -56,9 +56,15 @@ sync_hammer_plugin_makefile() {
 }
 
 sync_foreman_plugin_makefile() {
+	crudini --set .tx/config main host https://app.transifex.com
+	if grep -q minimum_perc .tx/config ; then
+		sed -i '/minimum_perc/ s/= [0-9]\+/= 50/' .tx/config
+	else
+		echo 'minimum_perc           = 50' >> .tx/config
+	fi
 	cp "${FOREMAN_PLUGIN_TEMPLATE}/locale/Makefile" locale/Makefile
-	if [[ -n "$(git status --porcelain locale/Makefile)" ]] ; then
-		git commit -m 'Sync locale Makefile from plugin template' locale/Makefile
+	if [[ -n "$(git status --porcelain .tx/config locale/Makefile)" ]] ; then
+		git commit -m 'Sync locale Makefile from plugin template' .tx/config locale/Makefile
 	fi
 }
 
