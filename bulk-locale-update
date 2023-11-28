@@ -173,6 +173,8 @@ update_foreman_plugins() {
 			sync_foreman_plugin_makefile
 		fi
 
+		git clean -xf locale
+
 		make -C locale tx-pull
 
 		WORKTREE="${FOREMAN_WORKTREE}/${NAME}"
