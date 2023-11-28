@@ -186,6 +186,10 @@ update_foreman_plugins() {
 			cd "$FOREMAN_CHECKOUT"
 			git worktree add --track -b "i18n-${NAME}" "$WORKTREE" upstream/HEAD
 			echo "gem '${NAME}', path: '${DIRECTORY}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
+			# apply https://github.com/theforeman/foreman-tasks/pull/735
+			if grep -q foreman-tasks "${DIRECTORY}"/*.gemspec ; then
+				echo "gem 'foreman-tasks', github: 'adamruzicka/foreman-tasks', branch: 'action-names'" >> "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
+			fi
 			if [[ $NAME == leapp ]] ; then
 				cat > "${WORKTREE}/bundler.d/ansible.local.rb" <<-EOF
 				# https://github.com/theforeman/foreman_leapp/issues/120
