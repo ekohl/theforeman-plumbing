@@ -56,11 +56,26 @@ sync_hammer_plugin_makefile() {
 }
 
 sync_foreman_plugin_makefile() {
+	local migrated
+	if grep -q '^\[f' .tx/config ; then
+		tx migrate
+		rm .tx/config_*
+		migrated=true
+	fi
+	sed -i '4,${ /^$/d }' .tx/config
 	crudini --set .tx/config main host https://app.transifex.com
 	if grep -q minimum_perc .tx/config ; then
 		sed -i '/minimum_perc/ s/= [0-9]\+/= 50/' .tx/config
 	else
 		echo 'minimum_perc           = 50' >> .tx/config
+	fi
+	if [[ $migrated == true ]] ; then
+		git commit --file - .tx/config <<-EOF
+		Migrate transifex config to new transifex-cli format
+
+		The old transifex-client no longer works and transifex-cli has a
+		different file format.
+		EOF
 	fi
 	cp "${FOREMAN_PLUGIN_TEMPLATE}/locale/Makefile" locale/Makefile
 	if [[ -n "$(git status --porcelain .tx/config locale/Makefile)" ]] ; then
