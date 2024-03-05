@@ -16,23 +16,28 @@ JSON="$(curl -s https://theforeman.github.io/foreman-plugin-overview/index.json)
 
 UPDATED=()
 
+export CLONE_DIRECTORY HAMMER_CLI_CHECKOUT FOREMAN_PLUGIN_TEMPLATE FOREMAN_WORKTREE FOREMAN_CHECKOUT FOREMAN_BUNDLER_FILE TRANSLATION_BRANCH JSON UPDATED
+
 ensure_clean() {
 	if [[ -n "$(git status --porcelain)" ]] ; then
 		echo "$PWD working directory is dirty"
 		exit 1
 	fi
 }
+export -f ensure_clean
 
 checkout_default_branch() {
 	DEFAULT_BRANCH="$(basename "$(git symbolic-ref refs/remotes/upstream/HEAD)")"
 	git checkout "$DEFAULT_BRANCH"
 }
+export -f checkout_default_branch
 
 update_checkout() {
 	if [[ -z $NO_UPDATE ]] ; then
 		git pull
 	fi
 }
+export -f update_checkout
 
 bundle_install() {
 	if [[ -f Gemfile ]] && [[ -z $NO_BUNDLE ]] ; then
@@ -40,6 +45,7 @@ bundle_install() {
 		bundle install
 	fi
 }
+export -f bundle_install
 
 list_foreman_plugins() {
 	local plugin_urls
@@ -86,11 +92,13 @@ sync_foreman_plugin_makefile() {
 		git commit -m 'Sync locale Makefile from plugin template' .tx/config locale/Makefile
 	fi
 }
+export -f sync_foreman_plugin_makefile
 
 checkout_translation_branch() {
 	git branch | grep -q "$TRANSLATION_BRANCH" && git branch -D "$TRANSLATION_BRANCH"
 	git checkout -b "$TRANSLATION_BRANCH"
 }
+export -f checkout_translation_branch
 
 update_hammer_plugins() {
 	# CLI plugins run in their own checkout
@@ -195,6 +203,7 @@ update_foreman_plugin() {
 
 	UPDATED+=("$directory")
 }
+export -f update_foreman_plugin
 
 update_foreman_plugins() {
 	eval "$(rbenv init - bash)"
@@ -209,7 +218,7 @@ update_foreman_plugins() {
 
 	# Foreman plugins run from Foreman
 	for url in $(list_foreman_plugins) ; do
-		update_foreman_plugin "$url"
+		sem -j "$(nproc)" update_foreman_plugin "$url"
 	done
 }
 
@@ -228,6 +237,7 @@ fi
 #update_hammer_plugins
 update_foreman_plugins
 
+sem --wait
 for directory in "${UPDATED[@]}" ; do
 	echo "$directory"
 done
