@@ -205,9 +205,6 @@ update_foreman_plugins() {
 		rbenv local 2.7.6
 		bundle_install
 		bundle exec rake db:create db:migrate
-		if [[ $NAME == leapp ]] ; then
-			bundle exec rake db:seed
-		fi
 
 		bundle exec rake "plugin:gettext[${NAME}]" "plugin:po_to_json[${NAME}]"
 
