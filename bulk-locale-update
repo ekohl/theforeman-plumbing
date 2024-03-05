@@ -186,12 +186,6 @@ update_foreman_plugins() {
 			cd "$FOREMAN_CHECKOUT"
 			git worktree add --track -b "i18n-${NAME}" "$WORKTREE" upstream/HEAD
 			echo "gem '${NAME}', path: '${DIRECTORY}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
-			if [[ $NAME == leapp ]] ; then
-				cat > "${WORKTREE}/bundler.d/ansible.local.rb" <<-EOF
-				# https://github.com/theforeman/foreman_leapp/issues/120
-				gem 'foreman_ansible'
-				EOF
-			fi
 			cp "${WORKTREE}/config/settings.yaml.test" "${WORKTREE}/config/settings.yaml"
 			cat > "${WORKTREE}/config/database.yml" <<-EOF
 			development:
