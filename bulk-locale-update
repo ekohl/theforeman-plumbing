@@ -120,6 +120,82 @@ update_hammer_plugins() {
 	done
 }
 
+update_foreman_plugin() {
+	local url
+	url=$1
+	NAME="$(basename "$url")"
+	DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
+
+	if [[ ! -d "${DIRECTORY}" ]] ; then
+		git clone -o upstream "$url" "$DIRECTORY"
+	fi
+
+	cd "${DIRECTORY}"
+
+	if [[ ! -f .tx/config ]] ; then
+		echo "[${NAME}] Missing translation config"
+		exit 1
+	fi
+
+	if git branch | grep -q "$TRANSLATION_BRANCH" ; then
+		echo "[${NAME}] Updating $TRANSLATION_BRANCH"
+		git checkout "$TRANSLATION_BRANCH"
+		git fetch upstream
+		git rebase --autostash upstream/HEAD
+	else
+		echo "[${NAME}] Creating $TRANSLATION_BRANCH"
+		ensure_clean
+		checkout_default_branch
+		update_checkout
+		checkout_translation_branch
+	fi
+
+	if [[ $NAME != katello ]] && [[ $NAME != foreman-tasks ]] ; then
+		sync_foreman_plugin_makefile
+	fi
+
+	git clean -xf locale
+
+	make -C locale tx-pull
+
+	WORKTREE="${FOREMAN_WORKTREE}/${NAME}"
+	if [[ -d "${WORKTREE}" ]] ; then
+		cd "${WORKTREE}"
+		ensure_clean
+		git reset --hard upstream/HEAD
+	else
+		cd "$FOREMAN_CHECKOUT"
+		git worktree add --track -b "i18n-${NAME}" "$WORKTREE" upstream/HEAD
+		echo "gem '${NAME}', path: '${DIRECTORY}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
+		cp "${WORKTREE}/config/settings.yaml.test" "${WORKTREE}/config/settings.yaml"
+		cat > "${WORKTREE}/config/database.yml" <<-EOF
+		development:
+		  adapter: postgresql
+		  database: foreman-$NAME
+		  encoding: utf8
+		EOF
+	fi
+
+	cd "$WORKTREE"
+	rbenv local 2.7.6
+	bundle_install
+	bundle exec rake db:create db:migrate
+
+	bundle exec rake "plugin:gettext[${NAME}]" "plugin:po_to_json[${NAME}]"
+
+	cd "$DIRECTORY"
+	if [[ -n "$(git status --porcelain)" ]] ; then
+		if [[ $NAME == katello ]] ; then
+			echo "[$NAME] skipping commit"
+			# make -C locale commit-translation-files
+		else
+			make -j "$(nproc)" -C locale mo-files
+		fi
+	fi
+
+	UPDATED+=("$DIRECTORY")
+}
+
 update_foreman_plugins() {
 	eval "$(rbenv init - bash)"
 	unset GEM_HOME
@@ -127,82 +203,13 @@ update_foreman_plugins() {
 	if [[ ! -d "${FOREMAN_CHECKOUT}" ]] ; then
 		git clone -o upstream https://github.com/theforeman/foreman "$FOREMAN_CHECKOUT"
 	fi
+
 	cd "$FOREMAN_CHECKOUT"
 	git fetch upstream
 
 	# Foreman plugins run from Foreman
 	for url in $(list_foreman_plugins) ; do
-		NAME="$(basename "$url")"
-		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
-
-		if [[ ! -d "${DIRECTORY}" ]] ; then
-			git clone -o upstream "$url" "$DIRECTORY"
-		fi
-
-		cd "${DIRECTORY}"
-
-		if [[ ! -f .tx/config ]] ; then
-			echo "[${NAME}] Missing translation config"
-			exit 1
-		fi
-
-		if git branch | grep -q "$TRANSLATION_BRANCH" ; then
-			echo "[${NAME}] Updating $TRANSLATION_BRANCH"
-			git checkout "$TRANSLATION_BRANCH"
-			git fetch upstream
-			git rebase --autostash upstream/HEAD
-		else
-			echo "[${NAME}] Creating $TRANSLATION_BRANCH"
-			ensure_clean
-			checkout_default_branch
-			update_checkout
-			checkout_translation_branch
-		fi
-
-		if [[ $NAME != katello ]] && [[ $NAME != foreman-tasks ]] ; then
-			sync_foreman_plugin_makefile
-		fi
-
-		git clean -xf locale
-
-		make -C locale tx-pull
-
-		WORKTREE="${FOREMAN_WORKTREE}/${NAME}"
-		if [[ -d "${WORKTREE}" ]] ; then
-			cd "${WORKTREE}"
-			ensure_clean
-			git reset --hard upstream/HEAD
-		else
-			cd "$FOREMAN_CHECKOUT"
-			git worktree add --track -b "i18n-${NAME}" "$WORKTREE" upstream/HEAD
-			echo "gem '${NAME}', path: '${DIRECTORY}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
-			cp "${WORKTREE}/config/settings.yaml.test" "${WORKTREE}/config/settings.yaml"
-			cat > "${WORKTREE}/config/database.yml" <<-EOF
-			development:
-			  adapter: postgresql
-			  database: foreman-$NAME
-			  encoding: utf8
-			EOF
-		fi
-
-		cd "$WORKTREE"
-		rbenv local 2.7.6
-		bundle_install
-		bundle exec rake db:create db:migrate
-
-		bundle exec rake "plugin:gettext[${NAME}]" "plugin:po_to_json[${NAME}]"
-
-		cd "$DIRECTORY"
-		if [[ -n "$(git status --porcelain)" ]] ; then
-			if [[ $NAME == katello ]] ; then
-				echo "[$NAME] skipping commit"
-				# make -C locale commit-translation-files
-			else
-				make -j "$(nproc)" -C locale mo-files
-			fi
-		fi
-
-		UPDATED+=("$DIRECTORY")
+		update_foreman_plugin "$url"
 	done
 }
 
