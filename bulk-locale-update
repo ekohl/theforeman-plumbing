@@ -69,9 +69,9 @@ sync_foreman_plugin_makefile() {
 	sed -i '4,${ /^$/d }' .tx/config
 	crudini --set .tx/config main host https://app.transifex.com
 	if grep -q minimum_perc .tx/config ; then
-		sed -i '/minimum_perc/ s/= [0-9]\+/= 50/' .tx/config
+		sed -i '/minimum_perc/ s/= [0-9]\+/= 0/' .tx/config
 	else
-		echo 'minimum_perc           = 50' >> .tx/config
+		echo 'minimum_perc           = 0' >> .tx/config
 	fi
 	if [[ $migrated == true ]] ; then
 		git commit --file - .tx/config <<-EOF
