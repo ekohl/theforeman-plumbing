@@ -45,24 +45,24 @@ bundle_install() {
 }
 export -f bundle_install
 
-list_foreman_plugins() {
-	local plugin_urls filter
-	filter=$1
-	plugin_urls=$(echo "$JSON" | jq -r '.foreman[][] | select(.translations) | .url')
+list_plugins() {
+	local project filter plugin_urls
+	project=$1
+	filter=$2
+
+	plugin_urls=$(echo "$JSON" | jq -r ".${project}[][] | select(.translations) | .url")
 	if [[ -n $FILTER ]] ; then
 		plugin_urls="$(echo "$plugin_urls" | grep -E "$filter")"
 	fi
 	echo "$plugin_urls"
 }
 
+list_foreman_plugins() {
+	list_plugins foreman "$1"
+}
+
 list_hammer_plugins() {
-	local plugin_urls filter
-	filter=$1
-	plugin_urls=$(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url')
-	if [[ -n $FILTER ]] ; then
-		plugin_urls="$(echo "$plugin_urls" | grep -E "$filter")"
-	fi
-	echo "$plugin_urls"
+	list_plugins cli "$1"
 }
 
 sync_foreman_plugin_makefile() {
