@@ -6,7 +6,6 @@ set -e
 set -o pipefail
 
 CLONE_DIRECTORY="$HOME/dev"
-HAMMER_CLI_CHECKOUT="${CLONE_DIRECTORY}/hammer-cli"
 FOREMAN_PLUGIN_TEMPLATE="${CLONE_DIRECTORY}/foreman_plugin_template"
 FOREMAN_WORKTREE="$HOME/dev/foreman-plugins"
 FOREMAN_CHECKOUT="${CLONE_DIRECTORY}/foreman"
@@ -42,18 +41,6 @@ bundle_install() {
 	fi
 }
 
-sync_hammer_plugin_makefile() {
-	if [[ ! -d "${HAMMER_CLI_CHECKOUT}" ]] ; then
-		git clone -o upstream https://github.com/theforeman/hammer-ci "${HAMMER_CLI_CHECKOUT}"
-	fi
-
-	#( cd "$HAMMER_CLI_CHECKOUT" && git pull )
-
-	cp "${HAMMER_CLI_CHECKOUT}/locale/Makefile.generic" locale/Makefile
-	if [[ -n "$(git status --porcelain locale/Makefile)" ]] ; then
-		git commit -m 'Sync locale Makefile from Hammer CLI' locale/Makefile
-	fi
-}
 
 sync_foreman_plugin_makefile() {
 	local migrated
@@ -112,8 +99,6 @@ update_hammer_plugins() {
 
 		checkout_translation_branch
 		bundle_install
-
-		sync_hammer_plugin_makefile
 
 		make -C locale tx-pull
 
