@@ -41,6 +41,23 @@ bundle_install() {
 	fi
 }
 
+list_foreman_plugins() {
+	local plugin_urls
+	plugin_urls=$(echo "$JSON" | jq -r '.foreman[][] | select(.translations) | .url')
+	if [[ -n $FILTER ]] ; then
+		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
+	fi
+	echo "$plugin_urls"
+}
+
+list_hammer_plugins() {
+	local plugin_urls
+	plugin_urls=$(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url')
+	if [[ -n $FILTER ]] ; then
+		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
+	fi
+	echo "$plugin_urls"
+}
 
 sync_foreman_plugin_makefile() {
 	local migrated
@@ -76,14 +93,8 @@ checkout_translation_branch() {
 }
 
 update_hammer_plugins() {
-	local plugin_urls
-	plugin_urls=$(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url')
-	if [[ -n $FILTER ]] ; then
-		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
-	fi
-
 	# CLI plugins run in their own checkout
-	for url in $plugin_urls ; do
+	for url in $(list_hammer_plugins) ; do
 		NAME="$(basename "$url")"
 		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
 
@@ -119,14 +130,8 @@ update_foreman_plugins() {
 	cd "$FOREMAN_CHECKOUT"
 	git fetch upstream
 
-	local plugin_urls
-	plugin_urls=$(echo "$JSON" | jq -r '.foreman[][] | select(.translations) | .url')
-	if [[ -n $FILTER ]] ; then
-		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
-	fi
-
 	# Foreman plugins run from Foreman
-	for url in $plugin_urls ; do
+	for url in $(list_foreman_plugins) ; do
 		NAME="$(basename "$url")"
 		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
 
@@ -211,6 +216,8 @@ if ! command -v msgfmt > /dev/null ; then
 	exit 1
 fi
 
+#list_hammer_plugins
+#list_foreman_plugins
 #update_hammer_plugins
 update_foreman_plugins
 
