@@ -237,12 +237,30 @@ if ! command -v msgfmt > /dev/null ; then
 	exit 1
 fi
 
-FILTER="$1"
+usage() { echo "Usage: $0 [-l] [-f <string>]" 1>&2; exit 1; }
 
-#list_hammer_plugins "$FILTER"
-#list_foreman_plugins "$FILTER"
-#update_hammer_plugins "$FILTER"
-update_foreman_plugins "$FILTER"
+while getopts "lf:" opt; do
+	case "${opt}" in
+		l)
+			LIST=1
+			;;
+		f)
+			FILTER=${OPTARG}
+			;;
+		*)
+			usage
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+if [[ -n $LIST ]] ; then
+	#list_hammer_plugins "$FILTER"
+	list_foreman_plugins "$FILTER"
+else
+	#update_hammer_plugins "$FILTER"
+	update_foreman_plugins "$FILTER"
+fi
 
 sem --wait
 for directory in "${UPDATED[@]}" ; do
