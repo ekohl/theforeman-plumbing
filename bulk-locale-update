@@ -121,36 +121,36 @@ update_hammer_plugins() {
 }
 
 update_foreman_plugin() {
-	local url
+	local url name directory
 	url=$1
-	NAME="$(basename "$url")"
-	DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
+	name="$(basename "$url")"
+	directory="${CLONE_DIRECTORY}/${name}"
 
-	if [[ ! -d "${DIRECTORY}" ]] ; then
-		git clone -o upstream "$url" "$DIRECTORY"
+	if [[ ! -d "${directory}" ]] ; then
+		git clone -o upstream "$url" "$directory"
 	fi
 
-	cd "${DIRECTORY}"
+	cd "${directory}"
 
 	if [[ ! -f .tx/config ]] ; then
-		echo "[${NAME}] Missing translation config"
+		echo "[${name}] Missing translation config"
 		exit 1
 	fi
 
 	if git branch | grep -q "$TRANSLATION_BRANCH" ; then
-		echo "[${NAME}] Updating $TRANSLATION_BRANCH"
+		echo "[${name}] Updating $TRANSLATION_BRANCH"
 		git checkout "$TRANSLATION_BRANCH"
 		git fetch upstream
 		git rebase --autostash upstream/HEAD
 	else
-		echo "[${NAME}] Creating $TRANSLATION_BRANCH"
+		echo "[${name}] Creating $TRANSLATION_BRANCH"
 		ensure_clean
 		checkout_default_branch
 		update_checkout
 		checkout_translation_branch
 	fi
 
-	if [[ $NAME != katello ]] && [[ $NAME != foreman-tasks ]] ; then
+	if [[ $name != katello ]] && [[ $name != foreman-tasks ]] ; then
 		sync_foreman_plugin_makefile
 	fi
 
@@ -158,20 +158,20 @@ update_foreman_plugin() {
 
 	make -C locale tx-pull
 
-	WORKTREE="${FOREMAN_WORKTREE}/${NAME}"
+	WORKTREE="${FOREMAN_WORKTREE}/${name}"
 	if [[ -d "${WORKTREE}" ]] ; then
 		cd "${WORKTREE}"
 		ensure_clean
 		git reset --hard upstream/HEAD
 	else
 		cd "$FOREMAN_CHECKOUT"
-		git worktree add --track -b "i18n-${NAME}" "$WORKTREE" upstream/HEAD
-		echo "gem '${NAME}', path: '${DIRECTORY}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
+		git worktree add --track -b "i18n-${name}" "$WORKTREE" upstream/HEAD
+		echo "gem '${name}', path: '${directory}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
 		cp "${WORKTREE}/config/settings.yaml.test" "${WORKTREE}/config/settings.yaml"
 		cat > "${WORKTREE}/config/database.yml" <<-EOF
 		development:
 		  adapter: postgresql
-		  database: foreman-$NAME
+		  database: foreman-$name
 		  encoding: utf8
 		EOF
 	fi
@@ -181,19 +181,19 @@ update_foreman_plugin() {
 	bundle_install
 	bundle exec rake db:create db:migrate
 
-	bundle exec rake "plugin:gettext[${NAME}]" "plugin:po_to_json[${NAME}]"
+	bundle exec rake "plugin:gettext[${name}]" "plugin:po_to_json[${name}]"
 
-	cd "$DIRECTORY"
+	cd "$directory"
 	if [[ -n "$(git status --porcelain)" ]] ; then
-		if [[ $NAME == katello ]] ; then
-			echo "[$NAME] skipping commit"
+		if [[ $name == katello ]] ; then
+			echo "[$name] skipping commit"
 			# make -C locale commit-translation-files
 		else
 			make -j "$(nproc)" -C locale mo-files
 		fi
 	fi
 
-	UPDATED+=("$DIRECTORY")
+	UPDATED+=("$directory")
 }
 
 update_foreman_plugins() {
