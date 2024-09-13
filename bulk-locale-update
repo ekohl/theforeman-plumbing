@@ -1,7 +1,5 @@
 #!/bin/bash
 
-FILTER="$1"
-
 set -e
 set -o pipefail
 
@@ -48,19 +46,21 @@ bundle_install() {
 export -f bundle_install
 
 list_foreman_plugins() {
-	local plugin_urls
+	local plugin_urls filter
+	filter=$1
 	plugin_urls=$(echo "$JSON" | jq -r '.foreman[][] | select(.translations) | .url')
 	if [[ -n $FILTER ]] ; then
-		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
+		plugin_urls="$(echo "$plugin_urls" | grep -E "$filter")"
 	fi
 	echo "$plugin_urls"
 }
 
 list_hammer_plugins() {
-	local plugin_urls
+	local plugin_urls filter
+	filter=$1
 	plugin_urls=$(echo "$JSON" | jq -r '.cli[][] | select(.translations) | .url')
 	if [[ -n $FILTER ]] ; then
-		plugin_urls="$(echo "$plugin_urls" | grep -E "$FILTER")"
+		plugin_urls="$(echo "$plugin_urls" | grep -E "$filter")"
 	fi
 	echo "$plugin_urls"
 }
@@ -101,8 +101,11 @@ checkout_translation_branch() {
 export -f checkout_translation_branch
 
 update_hammer_plugins() {
+	local filter
+	filter=$1
+
 	# CLI plugins run in their own checkout
-	for url in $(list_hammer_plugins) ; do
+	for url in $(list_hammer_plugins "$filter") ; do
 		NAME="$(basename "$url")"
 		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
 
@@ -206,6 +209,8 @@ update_foreman_plugin() {
 export -f update_foreman_plugin
 
 update_foreman_plugins() {
+	local filter
+	filter=$1
 	eval "$(rbenv init - bash)"
 	unset GEM_HOME
 
@@ -217,7 +222,7 @@ update_foreman_plugins() {
 	git fetch upstream
 
 	# Foreman plugins run from Foreman
-	for url in $(list_foreman_plugins) ; do
+	for url in $(list_foreman_plugins "$filter") ; do
 		sem -j "$(nproc)" update_foreman_plugin "$url"
 	done
 }
@@ -232,10 +237,12 @@ if ! command -v msgfmt > /dev/null ; then
 	exit 1
 fi
 
-#list_hammer_plugins
-#list_foreman_plugins
-#update_hammer_plugins
-update_foreman_plugins
+FILTER="$1"
+
+#list_hammer_plugins "$FILTER"
+#list_foreman_plugins "$FILTER"
+#update_hammer_plugins "$FILTER"
+update_foreman_plugins "$FILTER"
 
 sem --wait
 for directory in "${UPDATED[@]}" ; do
