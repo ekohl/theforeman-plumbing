@@ -198,7 +198,7 @@ update_foreman_plugins() {
 				echo "[$NAME] skipping commit"
 				# make -C locale commit-translation-files
 			else
-				make -C locale mo-files
+				make -j "$(nproc)" -C locale mo-files
 			fi
 		fi
 
