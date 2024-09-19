@@ -3,6 +3,8 @@
 set -e
 set -o pipefail
 
+export BUNDLE_WITHOUT=console:journald:libvirt:ovirt
+
 CLONE_DIRECTORY="$HOME/dev"
 FOREMAN_PLUGIN_TEMPLATE="${CLONE_DIRECTORY}/foreman_plugin_template"
 FOREMAN_WORKTREE="$HOME/dev/foreman-plugins"
