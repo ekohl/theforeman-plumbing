@@ -177,7 +177,12 @@ update_foreman_plugin() {
 	else
 		cd "$FOREMAN_CHECKOUT"
 		git worktree add --track -b "i18n-${name}" "$WORKTREE" upstream/HEAD
-		echo "gem '${name}', path: '${directory}'" > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}"
+		cat > "${WORKTREE}/${FOREMAN_BUNDLER_FILE}" <<-EOF
+		gem '${name}', path: '${directory}'
+		Dir['${directory}/gemfile.d/*.rb'].each do |file|
+		  eval_gemfile(file)
+		end
+		EOF
 		cp "${WORKTREE}/config/settings.yaml.test" "${WORKTREE}/config/settings.yaml"
 		cat > "${WORKTREE}/config/database.yml" <<-EOF
 		development:
