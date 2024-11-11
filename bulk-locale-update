@@ -104,34 +104,41 @@ checkout_translation_branch() {
 }
 export -f checkout_translation_branch
 
+update_hammer_plugin() {
+	local url name directory
+	url=$1
+	name="$(basename "$url")"
+	directory="${CLONE_DIRECTORY}/${name}"
+
+	if [[ ! -d "${directory}" ]] ; then
+		git clone -o upstream "$url" "$directory"
+	fi
+
+	cd "${directory}"
+
+	ensure_clean
+	checkout_default_branch
+	update_checkout
+
+	checkout_translation_branch
+	bundle_install
+
+	make -C locale tx-update
+
+	if [[ -n "$(git status --porcelain)" ]] ; then
+		git commit -am "i18n - extracting new, pulling from tx"
+		UPDATED+=("$directory")
+	fi
+}
+export -f update_hammer_plugin
+
 update_hammer_plugins() {
 	local filter
 	filter=$1
 
 	# CLI plugins run in their own checkout
 	for url in $(list_hammer_plugins "$filter") ; do
-		NAME="$(basename "$url")"
-		DIRECTORY="${CLONE_DIRECTORY}/${NAME}"
-
-		if [[ ! -d "${DIRECTORY}" ]] ; then
-			git clone -o upstream "$url" "$DIRECTORY"
-		fi
-
-		cd "${DIRECTORY}"
-
-		ensure_clean
-		checkout_default_branch
-		update_checkout
-
-		checkout_translation_branch
-		bundle_install
-
-		make -C locale tx-pull
-
-		if [[ -n "$(git status --porcelain)" ]] ; then
-			git commit -am "i18n - extracting new, pulling from tx"
-			UPDATED+=("$DIRECTORY")
-		fi
+		sem -j "$(nproc)" "update_hammer_plugin '$url' | tee '${LOGDIR}/$(basename "$url").log'"
 	done
 }
 
@@ -264,11 +271,11 @@ done
 shift $((OPTIND-1))
 
 if [[ -n $LIST ]] ; then
-	#list_hammer_plugins "$FILTER"
+	list_hammer_plugins "$FILTER"
 	list_foreman_plugins "$FILTER"
 else
 	mkdir -p "$LOGDIR"
-	#update_hammer_plugins "$FILTER"
+	update_hammer_plugins "$FILTER"
 	update_foreman_plugins "$FILTER"
 fi
 
