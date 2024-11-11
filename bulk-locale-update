@@ -5,6 +5,8 @@ set -o pipefail
 
 export BUNDLE_WITHOUT=console:journald:libvirt:ovirt
 
+SCRIPT_DIR=$(realpath "$(dirname -- "${BASH_SOURCE[0]}")")
+LOGDIR="$SCRIPT_DIR/logs"
 CLONE_DIRECTORY="$HOME/dev"
 FOREMAN_PLUGIN_TEMPLATE="${CLONE_DIRECTORY}/foreman_plugin_template"
 FOREMAN_WORKTREE="$HOME/dev/foreman-plugins"
@@ -230,7 +232,7 @@ update_foreman_plugins() {
 
 	# Foreman plugins run from Foreman
 	for url in $(list_foreman_plugins "$filter") ; do
-		sem -j "$(nproc)" update_foreman_plugin "$url"
+		sem -j "$(nproc)" "update_foreman_plugin '$url' | tee '${LOGDIR}/$(basename "$url").log'"
 	done
 }
 
@@ -265,6 +267,7 @@ if [[ -n $LIST ]] ; then
 	#list_hammer_plugins "$FILTER"
 	list_foreman_plugins "$FILTER"
 else
+	mkdir -p "$LOGDIR"
 	#update_hammer_plugins "$FILTER"
 	update_foreman_plugins "$FILTER"
 fi
